@@ -1,0 +1,18 @@
+{
+  "ClickScope": "Global",
+  "TargetApplication": "",
+  "ActionType": "Mouse",
+  "MouseButton": "Left",
+  "MouseMode": "Click",
+  "MouseHoldDuration": "00:00:00",
+  "KeyboardKey": "None",
+  "KeyboardMode": "Press",
+  "KeyboardHoldDuration": "00:00:00",
+  "TriggerKey": "F5",
+  "TriggerKeyModifiers": 0,
+  "Interval": "00:00:01",
+  "Mode": "Constant",
+  "TotalDuration": "00:00:00",
+  "StopKey": "Escape",
+  "Theme": "Light"
+}
