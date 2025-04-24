@@ -38,7 +38,7 @@ namespace AutoClicker.Utilities
         private void InitializeComponents()
         {
             this.Text = "Options";
-            this.Size = new System.Drawing.Size(320, 160); // Increased width to accommodate Dark Mode shift
+            this.Size = new System.Drawing.Size(340, 160); // Increased width to accommodate Dark Mode shift
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
@@ -60,7 +60,7 @@ namespace AutoClicker.Utilities
             rbDarkMode = new RadioButton
             {
                 Text = "Dark Mode",
-                Location = new System.Drawing.Point(200, 20), // Moved to the right
+                Location = new System.Drawing.Point(240, 20), // Moved further to the right
                 Checked = settings.Theme == "Dark"
             };
 
@@ -68,13 +68,13 @@ namespace AutoClicker.Utilities
             btnOk = new Button
             {
                 Text = "OK",
-                Location = new System.Drawing.Point(120, 80),
+                Location = new System.Drawing.Point(130, 80),
                 DialogResult = DialogResult.OK
             };
             btnCancel = new Button
             {
                 Text = "Cancel",
-                Location = new System.Drawing.Point(200, 80),
+                Location = new System.Drawing.Point(210, 80),
                 DialogResult = DialogResult.Cancel
             };
 

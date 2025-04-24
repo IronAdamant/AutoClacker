@@ -55,7 +55,7 @@ namespace AutoClicker.Utilities
         {
             this.Text = "Automatic Mouse & Keyboard Clicker";
             this.FormClosing += (s, e) => hotkeyManager?.Dispose();
-            this.Size = new Size(600, 700);
+            this.Size = new Size(600, 750); // Increased height to fit all controls
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
             this.Font = new Font("Segoe UI", 9F);
@@ -141,22 +141,22 @@ namespace AutoClicker.Utilities
             this.Controls.Add(gbTriggerKey);
 
             // Speed
-            var gbSpeed = new GroupBox { Text = "Speed", Location = new Point(280, 340), Size = new Size(260, 100), FlatStyle = FlatStyle.Flat, BackColor = Color.FromArgb(245, 245, 245) };
+            var gbSpeed = new GroupBox { Text = "Speed", Location = new Point(280, 340), Size = new Size(260, 120), FlatStyle = FlatStyle.Flat, BackColor = Color.FromArgb(245, 245, 245) };
             gbSpeed.Tag = "Set how often the automation repeats (interval between actions).";
-            var lblInterval = new Label { Text = "Interval:", Location = new Point(35, 25), AutoSize = true };
-            nudIntervalH = new NumericUpDown { Location = new Point(35, 45), Size = new Size(40, 25) };
-            var lblIntervalH = new Label { Text = "h", Location = new Point(80, 48), AutoSize = true };
-            nudIntervalM = new NumericUpDown { Location = new Point(95, 45), Size = new Size(40, 25) };
-            var lblIntervalM = new Label { Text = "m", Location = new Point(140, 48), AutoSize = true };
-            nudIntervalS = new NumericUpDown { Location = new Point(155, 45), Size = new Size(40, 25) };
-            var lblIntervalS = new Label { Text = "s", Location = new Point(200, 48), AutoSize = true };
-            nudIntervalMs = new NumericUpDown { Location = new Point(215, 45), Size = new Size(50, 25) };
-            var lblIntervalMs = new Label { Text = "ms", Location = new Point(270, 48), AutoSize = true };
+            var lblInterval = new Label { Text = "Interval:", Location = new Point(15, 25), AutoSize = true };
+            nudIntervalH = new NumericUpDown { Location = new Point(15, 45), Size = new Size(40, 25) };
+            var lblIntervalH = new Label { Text = "h", Location = new Point(60, 48), AutoSize = true };
+            nudIntervalM = new NumericUpDown { Location = new Point(75, 45), Size = new Size(40, 25) };
+            var lblIntervalM = new Label { Text = "m", Location = new Point(120, 48), AutoSize = true };
+            nudIntervalS = new NumericUpDown { Location = new Point(135, 45), Size = new Size(40, 25) };
+            var lblIntervalS = new Label { Text = "s", Location = new Point(180, 48), AutoSize = true };
+            nudIntervalMs = new NumericUpDown { Location = new Point(195, 45), Size = new Size(50, 25) };
+            var lblIntervalMs = new Label { Text = "ms", Location = new Point(250, 48), AutoSize = true };
             gbSpeed.Controls.AddRange(new Control[] { lblInterval, nudIntervalH, lblIntervalH, nudIntervalM, lblIntervalM, nudIntervalS, lblIntervalS, nudIntervalMs, lblIntervalMs });
             this.Controls.Add(gbSpeed);
 
             // Mode
-            var gbMode = new GroupBox { Text = "Mode", Location = new Point(10, 410), Size = new Size(260, 160), FlatStyle = FlatStyle.Flat, BackColor = Color.FromArgb(245, 245, 245) };
+            var gbMode = new GroupBox { Text = "Mode", Location = new Point(10, 410), Size = new Size(260, 180), FlatStyle = FlatStyle.Flat, BackColor = Color.FromArgb(245, 245, 245) };
             gbMode.Tag = "Choose whether automation runs indefinitely (Constant) or for a set time (Timer).";
             rbConstant = new RadioButton { Text = "Constant", Location = new Point(15, 25), Checked = true, FlatStyle = FlatStyle.Flat };
             rbConstant.Tag = "Run automation indefinitely.";
@@ -180,11 +180,11 @@ namespace AutoClicker.Utilities
             this.Controls.Add(lblStatus);
 
             // Buttons
-            btnReset = new Button { Text = "Reset to Default", Location = new Point(280, 580), Size = new Size(120, 30), FlatStyle = FlatStyle.Flat, BackColor = Color.FromArgb(100, 150, 200), ForeColor = Color.White };
+            btnReset = new Button { Text = "Reset to Default", Location = new Point(280, 620), Size = new Size(120, 30), FlatStyle = FlatStyle.Flat, BackColor = Color.FromArgb(100, 150, 200), ForeColor = Color.White };
             btnReset.Tag = "Reset all settings to their default values.";
             btnReset.MouseEnter += (s, e) => btnReset.BackColor = Color.FromArgb(120, 170, 220);
             btnReset.MouseLeave += (s, e) => btnReset.BackColor = Color.FromArgb(100, 150, 200);
-            btnOptions = new Button { Text = "Options", Location = new Point(410, 580), Size = new Size(120, 30), FlatStyle = FlatStyle.Flat, BackColor = Color.FromArgb(100, 150, 200), ForeColor = Color.White };
+            btnOptions = new Button { Text = "Options", Location = new Point(410, 620), Size = new Size(120, 30), FlatStyle = FlatStyle.Flat, BackColor = Color.FromArgb(100, 150, 200), ForeColor = Color.White };
             btnOptions.Tag = "Configure additional options like theme.";
             btnOptions.MouseEnter += (s, e) => btnOptions.BackColor = Color.FromArgb(120, 170, 220);
             btnOptions.MouseLeave += (s, e) => btnOptions.BackColor = Color.FromArgb(100, 150, 200);
