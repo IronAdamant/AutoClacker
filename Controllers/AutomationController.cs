@@ -60,6 +60,9 @@ namespace AutoClicker
                     return;
                 }
 
+                // Ensure interval is at least 1ms
+                TimeSpan effectiveInterval = settings.Interval.TotalMilliseconds < 1 ? TimeSpan.FromMilliseconds(1) : settings.Interval;
+
                 var stopwatch = System.Diagnostics.Stopwatch.StartNew();
                 while (!localCts.IsCancellationRequested)
                 {
@@ -71,7 +74,7 @@ namespace AutoClicker
                     if (settings.Mode == "Timer" && stopwatch.Elapsed >= settings.TotalDuration)
                         break;
 
-                    await Task.Delay(settings.Interval, localCts.Token);
+                    await Task.Delay(effectiveInterval, localCts.Token);
                 }
                 StopAutomation("Automation completed");
             }
