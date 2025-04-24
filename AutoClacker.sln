@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35828.75
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoClacker", "AutoClacker.csproj", "{6494B5D4-D827-44CB-831B-272BE5ED257E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6494B5D4-D827-44CB-831B-272BE5ED257E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6494B5D4-D827-44CB-831B-272BE5ED257E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6494B5D4-D827-44CB-831B-272BE5ED257E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6494B5D4-D827-44CB-831B-272BE5ED257E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {265A96A9-C766-483E-B6B7-F42BCEC873F7}
+	EndGlobalSection
+EndGlobal
