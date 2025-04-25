@@ -13,7 +13,10 @@ namespace AutoClacker.Models
         private string actionType = "Mouse";
         private string mouseButton = "Left";
         private string mouseMode = "Click";
+        private string clickMode = "Constant"; // New: Constant or Duration
+        private TimeSpan clickDuration = TimeSpan.Zero; // New: Duration for Click mode
         private TimeSpan mouseHoldDuration = TimeSpan.FromSeconds(1);
+        private string holdMode = "HoldDuration"; // New: HoldDuration or ConstantHold
         private int keyboardKey = 0; // Key.None
         private string keyboardMode = "Press";
         private TimeSpan keyboardHoldDuration = TimeSpan.Zero;
@@ -54,10 +57,28 @@ namespace AutoClacker.Models
             set { mouseMode = value; OnPropertyChanged(nameof(MouseMode)); }
         }
 
+        public string ClickMode
+        {
+            get => clickMode;
+            set { clickMode = value; OnPropertyChanged(nameof(ClickMode)); }
+        }
+
+        public TimeSpan ClickDuration
+        {
+            get => clickDuration;
+            set { clickDuration = value; OnPropertyChanged(nameof(ClickDuration)); }
+        }
+
         public TimeSpan MouseHoldDuration
         {
             get => mouseHoldDuration;
             set { mouseHoldDuration = value; OnPropertyChanged(nameof(MouseHoldDuration)); }
+        }
+
+        public string HoldMode
+        {
+            get => holdMode;
+            set { holdMode = value; OnPropertyChanged(nameof(HoldMode)); }
         }
 
         public Key KeyboardKey
