@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Threading;
 using AutoClacker.Models;
 using AutoClacker.Controllers;
 using AutoClacker.Utilities;
@@ -15,8 +16,8 @@ namespace AutoClacker.ViewModels
     {
         private readonly Settings settings;
         private readonly AutomationController automationController;
-        private HotkeyManager hotkeyManager;
         private readonly ApplicationDetector applicationDetector;
+        private HotkeyManager hotkeyManager;
         private bool isRunning;
         private string statusText = "Not running";
         private string statusColor = "Red";
@@ -24,6 +25,16 @@ namespace AutoClacker.ViewModels
         private bool isSettingToggleKey;
         private bool isSettingKeyboardKey;
         private List<string> runningApplications;
+
+        // Timers for decrementing displays
+        private readonly DispatcherTimer clickDurationTimer;
+        private readonly DispatcherTimer pressTimer;
+        private readonly DispatcherTimer holdDurationTimer;
+
+        // Remaining times
+        private TimeSpan remainingClickDuration;
+        private TimeSpan remainingPressTimer;
+        private TimeSpan remainingHoldDuration;
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -62,6 +73,14 @@ namespace AutoClacker.ViewModels
             SetHoldDurationCommand = new RelayCommand(SetHoldDuration);
             RefreshApplicationsCommand = new RelayCommand(RefreshApplications);
 
+            // Initialize timers
+            clickDurationTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
+            clickDurationTimer.Tick += (s, e) => UpdateRemainingClickDuration();
+            pressTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
+            pressTimer.Tick += (s, e) => UpdateRemainingPressTimer();
+            holdDurationTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
+            holdDurationTimer.Tick += (s, e) => UpdateRemainingHoldDuration();
+
             OnPropertyChanged(nameof(TriggerKeyDisplay));
             OnPropertyChanged(nameof(IsMouseMode));
             OnPropertyChanged(nameof(IsKeyboardMode));
@@ -85,6 +104,87 @@ namespace AutoClacker.ViewModels
         {
             hotkeyManager = new HotkeyManager(window, this);
             hotkeyManager.RegisterTriggerHotkey(settings.TriggerKey, settings.TriggerKeyModifiers);
+        }
+
+        // Remaining time properties
+        public int RemainingClickDurationMinutes => remainingClickDuration.Minutes;
+        public int RemainingClickDurationSeconds => remainingClickDuration.Seconds;
+        public int RemainingClickDurationMilliseconds => remainingClickDuration.Milliseconds;
+
+        public int RemainingPressTimerMinutes => remainingPressTimer.Minutes;
+        public int RemainingPressTimerSeconds => remainingPressTimer.Seconds;
+        public int RemainingPressTimerMilliseconds => remainingPressTimer.Milliseconds;
+
+        public int RemainingHoldDurationMinutes => remainingHoldDuration.Minutes;
+        public int RemainingHoldDurationSeconds => remainingHoldDuration.Seconds;
+        public int RemainingHoldDurationMilliseconds => remainingHoldDuration.Milliseconds;
+
+        private void UpdateRemainingClickDuration()
+        {
+            remainingClickDuration = remainingClickDuration.Subtract(TimeSpan.FromMilliseconds(100));
+            if (remainingClickDuration <= TimeSpan.Zero)
+            {
+                clickDurationTimer.Stop();
+                remainingClickDuration = TimeSpan.Zero;
+                automationController.StopAutomation("Click Duration completed");
+            }
+            OnPropertyChanged(nameof(RemainingClickDurationMinutes));
+            OnPropertyChanged(nameof(RemainingClickDurationSeconds));
+            OnPropertyChanged(nameof(RemainingClickDurationMilliseconds));
+        }
+
+        private void UpdateRemainingPressTimer()
+        {
+            remainingPressTimer = remainingPressTimer.Subtract(TimeSpan.FromMilliseconds(100));
+            if (remainingPressTimer <= TimeSpan.Zero)
+            {
+                pressTimer.Stop();
+                remainingPressTimer = TimeSpan.Zero;
+                automationController.StopAutomation("Press Timer completed");
+            }
+            OnPropertyChanged(nameof(RemainingPressTimerMinutes));
+            OnPropertyChanged(nameof(RemainingPressTimerSeconds));
+            OnPropertyChanged(nameof(RemainingPressTimerMilliseconds));
+        }
+
+        private void UpdateRemainingHoldDuration()
+        {
+            remainingHoldDuration = remainingHoldDuration.Subtract(TimeSpan.FromMilliseconds(100));
+            if (remainingHoldDuration <= TimeSpan.Zero)
+            {
+                holdDurationTimer.Stop();
+                remainingHoldDuration = TimeSpan.Zero;
+                automationController.StopAutomation("Hold Duration completed");
+            }
+            OnPropertyChanged(nameof(RemainingHoldDurationMinutes));
+            OnPropertyChanged(nameof(RemainingHoldDurationSeconds));
+            OnPropertyChanged(nameof(RemainingHoldDurationMilliseconds));
+        }
+
+        public void StartTimers()
+        {
+            if (settings.ActionType == "Mouse" && settings.MouseMode == "Click" && settings.ClickMode == "Duration")
+            {
+                remainingClickDuration = settings.ClickDuration;
+                clickDurationTimer.Start();
+            }
+            if (settings.ActionType == "Keyboard" && settings.KeyboardMode == "Press" && settings.Mode == "Timer")
+            {
+                remainingPressTimer = settings.TotalDuration;
+                pressTimer.Start();
+            }
+            if (settings.ActionType == "Keyboard" && settings.KeyboardMode == "Hold" && settings.KeyboardHoldDuration != TimeSpan.Zero)
+            {
+                remainingHoldDuration = settings.KeyboardHoldDuration;
+                holdDurationTimer.Start();
+            }
+        }
+
+        public void StopTimers()
+        {
+            clickDurationTimer.Stop();
+            pressTimer.Stop();
+            holdDurationTimer.Stop();
         }
 
         public string ClickScope
@@ -487,15 +587,15 @@ namespace AutoClacker.ViewModels
         public bool IsTimerMode => Mode == "Timer";
         public bool IsRestrictedMode => ClickScope == "Restricted";
 
-        public ICommand ToggleAutomationCommand { get; }
-        public ICommand SetTriggerKeyCommand { get; }
-        public ICommand SetKeyCommand { get; }
-        public ICommand ResetSettingsCommand { get; }
-        public ICommand SetConstantCommand { get; }
-        public ICommand SetHoldDurationCommand { get; }
-        public ICommand RefreshApplicationsCommand { get; }
+        public RelayCommand ToggleAutomationCommand { get; }
+        public RelayCommand SetTriggerKeyCommand { get; }
+        public RelayCommand SetKeyCommand { get; }
+        public RelayCommand ResetSettingsCommand { get; }
+        public RelayCommand SetConstantCommand { get; }
+        public RelayCommand SetHoldDurationCommand { get; }
+        public RelayCommand RefreshApplicationsCommand { get; }
 
-        private void ToggleAutomation(object parameter)
+        private void ToggleAutomation(object _)
         {
             if (IsRunning)
             {
@@ -514,7 +614,7 @@ namespace AutoClacker.ViewModels
             }
         }
 
-        private void SetTriggerKey(object parameter)
+        private void SetTriggerKey(object _)
         {
             isSettingToggleKey = true;
             isSettingKeyboardKey = false;
@@ -555,7 +655,7 @@ namespace AutoClacker.ViewModels
             };
         }
 
-        private void SetKey(object parameter)
+        private void SetKey(object _)
         {
             isSettingKeyboardKey = true;
             isSettingToggleKey = false;
@@ -591,7 +691,7 @@ namespace AutoClacker.ViewModels
             };
         }
 
-        private void SetConstant(object parameter)
+        private void SetConstant(object _)
         {
             settings.KeyboardHoldDuration = TimeSpan.Zero;
             OnPropertyChanged(nameof(IsKeyboardHoldDurationMode));
@@ -599,7 +699,7 @@ namespace AutoClacker.ViewModels
             Properties.Settings.Default.Save();
         }
 
-        private void SetHoldDuration(object parameter)
+        private void SetHoldDuration(object _)
         {
             if (settings.KeyboardHoldDuration == TimeSpan.Zero)
             {
@@ -611,14 +711,14 @@ namespace AutoClacker.ViewModels
             OnPropertyChanged(nameof(IsKeyboardHoldDurationMode));
         }
 
-        private void RefreshApplications(object parameter)
+        private void RefreshApplications(object _)
         {
             var apps = applicationDetector.GetRunningApplications();
             Console.WriteLine($"Found {apps.Count} running applications: {string.Join(", ", apps)}");
             RunningApplications = apps;
         }
 
-        private void ResetSettings(object parameter)
+        private void ResetSettings(object _)
         {
             Properties.Settings.Default.Reset();
             settings.ClickScope = Properties.Settings.Default.ClickScope;
