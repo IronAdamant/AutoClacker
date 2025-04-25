@@ -12,7 +12,6 @@ namespace AutoClacker.Views
         public MainWindow()
         {
             InitializeComponent();
-            // Ensure TriggerKey is set to F5 on a fresh start
             if (Properties.Settings.Default.TriggerKey != 116) // 116 is Key.F5
             {
                 Properties.Settings.Default.TriggerKey = 116;
@@ -32,7 +31,6 @@ namespace AutoClacker.Views
         private void MainWindow_KeyDown(object sender, KeyEventArgs e)
         {
             viewModel.OnKeyDown(e);
-            // Only mark as handled if the event was processed (e.g., setting toggle key or keyboard key)
             if (!(e.OriginalSource is TextBox))
             {
                 e.Handled = true;

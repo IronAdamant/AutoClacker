@@ -13,7 +13,7 @@ namespace AutoClacker.Controllers
     {
         private readonly MainViewModel viewModel;
         private CancellationTokenSource cts;
-        private ApplicationDetector detector = new ApplicationDetector();
+        private readonly ApplicationDetector detector = new ApplicationDetector();
 
         [DllImport("user32.dll")]
         private static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
@@ -76,7 +76,6 @@ namespace AutoClacker.Controllers
                     return;
                 }
 
-                // Only check hold duration if it's actually being used
                 if (settings.ActionType == "Mouse" && settings.MouseMode == "Hold" && settings.HoldMode == "HoldDuration" && settings.MouseHoldDuration > settings.Interval)
                 {
                     StopAutomation("Mouse hold duration must be less than or equal to interval");
@@ -93,9 +92,10 @@ namespace AutoClacker.Controllers
                 var stopwatch = System.Diagnostics.Stopwatch.StartNew();
                 bool mouseButtonHeld = false;
 
+                viewModel.StartTimers(); // Start the timers for decrementing displays
+
                 while (!localCts.IsCancellationRequested)
                 {
-                    // Track the start time of the cycle
                     var cycleStartTime = stopwatch.Elapsed;
 
                     if (settings.ClickScope == "Restricted")
@@ -104,7 +104,6 @@ namespace AutoClacker.Controllers
                     {
                         if (settings.ActionType == "Mouse" && settings.MouseMode == "Hold" && settings.HoldMode == "ConstantHold")
                         {
-                            // For Constant Hold, hold the button down and don't release until automation stops
                             if (!mouseButtonHeld)
                             {
                                 uint down = settings.MouseButton == "Left" ? 0x0002U : 0x0008U;
@@ -114,7 +113,6 @@ namespace AutoClacker.Controllers
                         }
                         else
                         {
-                            // Ensure the button is released if we're not in Constant Hold
                             if (mouseButtonHeld)
                             {
                                 uint up = settings.MouseButton == "Left" ? 0x0004U : 0x0010U;
@@ -125,18 +123,15 @@ namespace AutoClacker.Controllers
                         }
                     }
 
-                    // Apply Click Duration for Mouse "Click" actions
                     if (settings.ActionType == "Mouse" && settings.MouseMode == "Click" && settings.ClickMode == "Duration" && settings.ClickDuration != TimeSpan.Zero && stopwatch.Elapsed >= settings.ClickDuration)
                     {
                         break;
                     }
-                    // Apply Total Duration timer only for Keyboard "Press" actions
                     if (settings.ActionType == "Keyboard" && settings.KeyboardMode == "Press" && settings.Mode == "Timer" && stopwatch.Elapsed >= settings.TotalDuration)
                     {
                         break;
                     }
 
-                    // Calculate elapsed time for this cycle and adjust the delay to match the interval
                     var cycleElapsedTime = stopwatch.Elapsed - cycleStartTime;
                     var remainingCycleTime = effectiveInterval - cycleElapsedTime;
                     if (remainingCycleTime.TotalMilliseconds > 0)
@@ -145,7 +140,6 @@ namespace AutoClacker.Controllers
                     }
                 }
 
-                // Ensure the mouse button is released if it was held
                 if (mouseButtonHeld)
                 {
                     uint up = settings.MouseButton == "Left" ? 0x0004U : 0x0010U;
@@ -169,6 +163,7 @@ namespace AutoClacker.Controllers
             cts?.Cancel();
             cts?.Dispose();
             cts = null;
+            viewModel.StopTimers(); // Stop the timers when automation ends
             viewModel.UpdateStatus(message, "Red");
         }
 
