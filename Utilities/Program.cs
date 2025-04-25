@@ -1,17 +1,16 @@
 ﻿using System;
-using System.Windows.Forms;
-using AutoClicker.Utilities;
+using System.Windows;
+using AutoClacker.Views;
 
-namespace AutoClicker
+namespace AutoClacker
 {
-    static class Program
+    public static class Program
     {
         [STAThread]
-        static void Main()
+        public static void Main()
         {
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new MainForm());
+            var app = new Application();
+            app.Run(new MainWindow());
         }
     }
 }

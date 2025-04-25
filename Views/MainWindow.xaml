@@ -1,0 +1,171 @@
+﻿<Window x:Class="AutoClacker.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:AutoClacker.ViewModels"
+        xmlns:converters="clr-namespace:AutoClacker.Converters"
+        Title="Automatic Mouse &amp; Keyboard Clicker" Height="650" Width="600">
+    <Window.Resources>
+        <converters:StringToBooleanConverter x:Key="StringToBooleanConverter"/>
+        <converters:StringToCommandConverter x:Key="StringToCommandConverter"/>
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+        <Style TargetType="GroupBox">
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="Background" Value="#F5F5F5"/>
+        </Style>
+        <Style TargetType="RadioButton">
+            <Setter Property="Margin" Value="5,2"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Margin" Value="5,2"/>
+            <Setter Property="Width" Value="150"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Margin" Value="5,2"/>
+            <Setter Property="Padding" Value="5,2"/>
+            <Setter Property="Background" Value="#6496C8"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Margin" Value="5,2"/>
+            <Setter Property="Width" Value="40"/>
+        </Style>
+        <Style TargetType="Label">
+            <Setter Property="Margin" Value="2,0"/>
+        </Style>
+    </Window.Resources>
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Click Scope -->
+        <GroupBox Grid.Row="0" Grid.Column="0" Header="Click Scope">
+            <StackPanel>
+                <RadioButton Content="Global" IsChecked="{Binding ClickScope, Converter={StaticResource StringToBooleanConverter}, ConverterParameter=Global}" Command="{Binding Path=ClickScope, Converter={StaticResource StringToCommandConverter}, ConverterParameter=Global}"/>
+                <RadioButton Content="Restricted to Application (Keyboard)" IsChecked="{Binding ClickScope, Converter={StaticResource StringToBooleanConverter}, ConverterParameter=Restricted}" Command="{Binding Path=ClickScope, Converter={StaticResource StringToCommandConverter}, ConverterParameter=Restricted}"/>
+                <StackPanel Orientation="Horizontal" IsEnabled="{Binding IsRestrictedMode}">
+                    <ComboBox ItemsSource="{Binding RunningApplications}" SelectedItem="{Binding TargetApplication}"/>
+                    <Button Content="Refresh" Command="{Binding RefreshApplicationsCommand}"/>
+                </StackPanel>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Action Type -->
+        <GroupBox Grid.Row="0" Grid.Column="1" Header="Action Type">
+            <StackPanel Orientation="Horizontal">
+                <RadioButton Content="Mouse" IsChecked="{Binding ActionType, Converter={StaticResource StringToBooleanConverter}, ConverterParameter=Mouse}" Command="{Binding Path=ActionType, Converter={StaticResource StringToCommandConverter}, ConverterParameter=Mouse}"/>
+                <RadioButton Content="Keyboard" IsChecked="{Binding ActionType, Converter={StaticResource StringToBooleanConverter}, ConverterParameter=Keyboard}" Command="{Binding Path=ActionType, Converter={StaticResource StringToCommandConverter}, ConverterParameter=Keyboard}"/>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Mouse Settings -->
+        <GroupBox Grid.Row="1" Grid.Column="0" Header="Mouse Settings" Visibility="{Binding IsMouseMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton Content="Left" IsChecked="{Binding MouseButton, Converter={StaticResource StringToBooleanConverter}, ConverterParameter=Left}" Command="{Binding Path=MouseButton, Converter={StaticResource StringToCommandConverter}, ConverterParameter=Left}"/>
+                    <RadioButton Content="Right" IsChecked="{Binding MouseButton, Converter={StaticResource StringToBooleanConverter}, ConverterParameter=Right}" Command="{Binding Path=MouseButton, Converter={StaticResource StringToCommandConverter}, ConverterParameter=Right}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton Content="Click" IsChecked="{Binding MouseMode, Converter={StaticResource StringToBooleanConverter}, ConverterParameter=Click}" Command="{Binding Path=MouseMode, Converter={StaticResource StringToCommandConverter}, ConverterParameter=Click}"/>
+                    <RadioButton Content="Hold" IsChecked="{Binding MouseMode, Converter={StaticResource StringToBooleanConverter}, ConverterParameter=Hold}" Command="{Binding Path=MouseMode, Converter={StaticResource StringToCommandConverter}, ConverterParameter=Hold}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" IsEnabled="{Binding IsMouseHoldMode}">
+                    <Label Content="Hold Duration:"/>
+                    <TextBox Text="{Binding MouseHoldDurationMinutes}"/>
+                    <Label Content="m"/>
+                    <TextBox Text="{Binding MouseHoldDurationSeconds}"/>
+                    <Label Content="s"/>
+                    <TextBox Text="{Binding MouseHoldDurationMilliseconds}"/>
+                    <Label Content="ms"/>
+                </StackPanel>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Keyboard Settings -->
+        <GroupBox Grid.Row="1" Grid.Column="1" Header="Keyboard Settings" Visibility="{Binding IsKeyboardMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <Button Content="Set Key" Command="{Binding SetKeyCommand}"/>
+                    <Label Content="{Binding KeyboardKeyDisplay}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton Content="Press" IsChecked="{Binding KeyboardMode, Converter={StaticResource StringToBooleanConverter}, ConverterParameter=Press}" Command="{Binding Path=KeyboardMode, Converter={StaticResource StringToCommandConverter}, ConverterParameter=Press}"/>
+                    <RadioButton Content="Hold" IsChecked="{Binding KeyboardMode, Converter={StaticResource StringToBooleanConverter}, ConverterParameter=Hold}" Command="{Binding Path=KeyboardMode, Converter={StaticResource StringToCommandConverter}, ConverterParameter=Hold}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Visibility="{Binding IsKeyboardHoldMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <RadioButton Content="Constant" IsChecked="{Binding IsKeyboardHoldDurationMode, Mode=OneWay, Converter={StaticResource InverseBooleanConverter}}" Command="{Binding SetConstantCommand}"/>
+                    <RadioButton Content="Hold Duration" IsChecked="{Binding IsKeyboardHoldDurationMode, Mode=OneWay}" Command="{Binding SetHoldDurationCommand}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Visibility="{Binding IsKeyboardHoldMode, Converter={StaticResource BooleanToVisibilityConverter}}" IsEnabled="{Binding IsKeyboardHoldDurationMode}">
+                    <Label Content="Hold Duration:"/>
+                    <TextBox Text="{Binding KeyboardHoldDurationMinutes}"/>
+                    <Label Content="m"/>
+                    <TextBox Text="{Binding KeyboardHoldDurationSeconds}"/>
+                    <Label Content="s"/>
+                    <TextBox Text="{Binding KeyboardHoldDurationMilliseconds}"/>
+                    <Label Content="ms"/>
+                </StackPanel>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Toggle Key -->
+        <GroupBox Grid.Row="2" Grid.Column="0" Header="Toggle Key (Start/Stop)">
+            <StackPanel Orientation="Horizontal">
+                <Button Content="Set Toggle Key" Command="{Binding SetTriggerKeyCommand}"/>
+                <Label Content="{Binding TriggerKeyDisplay}"/>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Speed -->
+        <GroupBox Grid.Row="2" Grid.Column="1" Header="Speed">
+            <StackPanel>
+                <Label Content="Interval:" HorizontalAlignment="Left"/>
+                <StackPanel Orientation="Horizontal">
+                    <TextBox Text="{Binding IntervalMinutes}"/>
+                    <Label Content="m"/>
+                    <TextBox Text="{Binding IntervalSeconds}"/>
+                    <Label Content="s"/>
+                    <TextBox Text="{Binding IntervalMilliseconds}"/>
+                    <Label Content="ms"/>
+                </StackPanel>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Mode -->
+        <GroupBox Grid.Row="3" Grid.Column="0" Header="Mode">
+            <StackPanel>
+                <RadioButton Content="Constant" IsChecked="{Binding Mode, Converter={StaticResource StringToBooleanConverter}, ConverterParameter=Constant}" Command="{Binding Path=Mode, Converter={StaticResource StringToCommandConverter}, ConverterParameter=Constant}"/>
+                <RadioButton Content="Timer" IsChecked="{Binding Mode, Converter={StaticResource StringToBooleanConverter}, ConverterParameter=Timer}" Command="{Binding Path=Mode, Converter={StaticResource StringToCommandConverter}, ConverterParameter=Timer}"/>
+                <Label Content="Total Duration:" HorizontalAlignment="Left" IsEnabled="{Binding IsTimerMode}"/>
+                <StackPanel Orientation="Horizontal" IsEnabled="{Binding IsTimerMode}">
+                    <TextBox Text="{Binding TotalDurationMinutes}"/>
+                    <Label Content="m"/>
+                    <TextBox Text="{Binding TotalDurationSeconds}"/>
+                    <Label Content="s"/>
+                    <TextBox Text="{Binding TotalDurationMilliseconds}"/>
+                    <Label Content="ms"/>
+                </StackPanel>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Status and Buttons -->
+        <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Center">
+            <Label Content="{Binding StatusText}" Foreground="{Binding StatusColor}" BorderBrush="Black" BorderThickness="1" Padding="10,5"/>
+            <Button Content="Reset to Default" Command="{Binding ResetSettingsCommand}"/>
+            <Button Content="Options"/>
+        </StackPanel>
+    </Grid>
+</Window>

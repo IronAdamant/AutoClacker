@@ -1,67 +1,66 @@
 using System;
 using System.Runtime.InteropServices;
-using System.Windows.Forms;
+using System.Windows;
+using System.Windows.Input;
+using System.Windows.Interop;
+using AutoClacker.ViewModels;
 
-namespace AutoClicker.Utilities
+namespace AutoClacker.Utilities
 {
-    public class HotkeyManager : IDisposable
+    public class HotkeyManager
     {
         private const int WM_HOTKEY = 0x0312;
-        private const int MOD_NONE = 0x0000;
-        private const int DebounceIntervalMs = 500; // Debounce interval in milliseconds
+        private const int MOD_ALT = 0x0001;
+        private const int MOD_CONTROL = 0x0002;
+        private const int MOD_SHIFT = 0x0004;
+        private const int MOD_WIN = 0x0008;
 
-        private MainForm form;
-        private int triggerHotkeyId = 1;
-        private DateTime lastTriggerTime = DateTime.MinValue;
+        [DllImport("user32.dll")]
+        private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
 
-        public HotkeyManager(MainForm form)
+        [DllImport("user32.dll")]
+        private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+
+        private readonly Window window;
+        private readonly MainViewModel viewModel;
+        private IntPtr hWnd;
+        private int hotkeyId = 1;
+
+        public HotkeyManager(Window window, MainViewModel viewModel)
         {
-            this.form = form;
-            RegisterTriggerHotkey(form.Settings.TriggerKey, form.Settings.TriggerKeyModifiers);
+            this.window = window;
+            this.viewModel = viewModel;
+            var source = PresentationSource.FromVisual(window) as HwndSource;
+            hWnd = source.Handle;
+            source.AddHook(WndProc);
         }
 
-        public void RegisterTriggerHotkey(Keys key, int modifiers)
+        public void RegisterTriggerHotkey(Key key, ModifierKeys modifiers)
         {
-            UnregisterHotKey(form.Handle, triggerHotkeyId);
-            bool success = RegisterHotKey(form.Handle, triggerHotkeyId, modifiers, (int)key);
-            if (!success)
-            {
-                MessageBox.Show($"Failed to register hotkey {key}. It may be in use by another application.", "Hotkey Registration Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
+            UnregisterHotKey(hWnd, hotkeyId);
+            uint fsModifiers = 0;
+            if (modifiers.HasFlag(ModifierKeys.Alt)) fsModifiers |= MOD_ALT;
+            if (modifiers.HasFlag(ModifierKeys.Control)) fsModifiers |= MOD_CONTROL;
+            if (modifiers.HasFlag(ModifierKeys.Shift)) fsModifiers |= MOD_SHIFT;
+            if (modifiers.HasFlag(ModifierKeys.Windows)) fsModifiers |= MOD_WIN;
+
+            uint vk = (uint)KeyInterop.VirtualKeyFromKey(key);
+            RegisterHotKey(hWnd, hotkeyId, fsModifiers, vk);
         }
 
-        public void ProcessHotkey(Message m)
+        private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
-            if (m.Msg == WM_HOTKEY && (int)m.WParam == triggerHotkeyId)
+            if (msg == WM_HOTKEY && wParam.ToInt32() == hotkeyId)
             {
-                // Debounce: Ignore if the last trigger was less than 500ms ago
-                DateTime now = DateTime.Now;
-                if ((now - lastTriggerTime).TotalMilliseconds < DebounceIntervalMs)
-                    return;
-
-                lastTriggerTime = now;
-
-                // Toggle automation
-                if (!form.IsAutomationRunning)
-                {
-                    form.StartAutomation();
-                }
-                else
-                {
-                    form.StopAutomation();
-                }
+                viewModel.ToggleAutomationCommand.Execute(null);
+                handled = true;
             }
+            return IntPtr.Zero;
         }
 
         public void Dispose()
         {
-            UnregisterHotKey(form.Handle, triggerHotkeyId);
+            UnregisterHotKey(hWnd, hotkeyId);
         }
-
-        [DllImport("user32.dll")]
-        private static extern bool RegisterHotKey(IntPtr hWnd, int id, int fsModifiers, int vk);
-
-        [DllImport("user32.dll")]
-        private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
     }
 }
