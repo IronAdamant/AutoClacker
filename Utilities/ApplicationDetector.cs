@@ -1,26 +1,35 @@
-using System.Collections.Generic;
 using System.Diagnostics;
+using System.Collections.Generic;
 using System.Linq;
-using System.IO;
+using System;
 
-namespace AutoClicker.Utilities
+namespace AutoClacker.Utilities
 {
     public class ApplicationDetector
     {
         public List<string> GetRunningApplications()
         {
-            return Process.GetProcesses()
-                .Where(p => !string.IsNullOrEmpty(p.MainWindowTitle))
-                .Select(p => p.ProcessName)
-                .Distinct()
-                .OrderBy(name => name)
-                .ToList();
+            List<string> applications = new List<string>();
+            foreach (Process process in Process.GetProcesses())
+            {
+                try
+                {
+                    if (!string.IsNullOrEmpty(process.MainWindowTitle))
+                    {
+                        applications.Add(process.ProcessName);
+                    }
+                }
+                catch { }
+            }
+            var result = applications.OrderBy(app => app).ToList();
+            Console.WriteLine($"ApplicationDetector found {result.Count} applications: {string.Join(", ", result)}");
+            return result;
         }
 
         public Process GetProcessByName(string processName)
         {
-            return Process.GetProcessesByName(Path.GetFileNameWithoutExtension(processName))
-                .FirstOrDefault(p => !string.IsNullOrEmpty(p.MainWindowTitle));
+            Process[] processes = Process.GetProcessesByName(processName);
+            return processes.Length > 0 ? processes[0] : null;
         }
     }
 }

@@ -1,28 +1,122 @@
 using System;
-using Newtonsoft.Json;
-using System.Windows.Forms;
+using System.ComponentModel;
+using System.Windows.Input;
 
-namespace AutoClicker
+namespace AutoClacker.Models
 {
-    public class Settings
+    public class Settings : INotifyPropertyChanged
     {
-        public string ClickScope { get; set; } = "Global";
-        public string TargetApplication { get; set; } = "";
-        public string ActionType { get; set; } = "Mouse";
-        public string MouseButton { get; set; } = "Left";
-        public string MouseMode { get; set; } = "Click";
-        public TimeSpan MouseHoldDuration { get; set; } = TimeSpan.FromSeconds(1); // Removed hours
-        public Keys KeyboardKey { get; set; } = Keys.None;
-        public string KeyboardMode { get; set; } = "Press";
-        public TimeSpan KeyboardHoldDuration { get; set; } = TimeSpan.Zero; // Removed hours
-        public Keys TriggerKey { get; set; } = Keys.F5;
-        public int TriggerKeyModifiers { get; set; } = 0; // For Ctrl, Shift, Alt
-        public TimeSpan Interval { get; set; } = TimeSpan.FromSeconds(1); // Removed hours
-        public string Mode { get; set; } = "Constant";
-        public TimeSpan TotalDuration { get; set; } = TimeSpan.Zero; // Removed hours
-        public string Theme { get; set; } = "Light";
+        public event PropertyChangedEventHandler PropertyChanged;
 
-        [JsonIgnore]
-        public static Settings Default => new Settings();
+        private string clickScope = "Global";
+        private string targetApplication = "";
+        private string actionType = "Mouse";
+        private string mouseButton = "Left";
+        private string mouseMode = "Click";
+        private TimeSpan mouseHoldDuration = TimeSpan.FromSeconds(1);
+        private int keyboardKey = 0; // Key.None
+        private string keyboardMode = "Press";
+        private TimeSpan keyboardHoldDuration = TimeSpan.Zero;
+        private int triggerKey = 116; // Key.F5
+        private int triggerKeyModifiers = 0; // ModifierKeys.None
+        private TimeSpan interval = TimeSpan.FromSeconds(1);
+        private string mode = "Constant";
+        private TimeSpan totalDuration = TimeSpan.Zero;
+        private string theme = "Light";
+
+        public string ClickScope
+        {
+            get => clickScope;
+            set { clickScope = value; OnPropertyChanged(nameof(ClickScope)); }
+        }
+
+        public string TargetApplication
+        {
+            get => targetApplication;
+            set { targetApplication = value; OnPropertyChanged(nameof(TargetApplication)); }
+        }
+
+        public string ActionType
+        {
+            get => actionType;
+            set { actionType = value; OnPropertyChanged(nameof(ActionType)); }
+        }
+
+        public string MouseButton
+        {
+            get => mouseButton;
+            set { mouseButton = value; OnPropertyChanged(nameof(MouseButton)); }
+        }
+
+        public string MouseMode
+        {
+            get => mouseMode;
+            set { mouseMode = value; OnPropertyChanged(nameof(MouseMode)); }
+        }
+
+        public TimeSpan MouseHoldDuration
+        {
+            get => mouseHoldDuration;
+            set { mouseHoldDuration = value; OnPropertyChanged(nameof(MouseHoldDuration)); }
+        }
+
+        public Key KeyboardKey
+        {
+            get => (Key)keyboardKey;
+            set { keyboardKey = (int)value; OnPropertyChanged(nameof(KeyboardKey)); }
+        }
+
+        public string KeyboardMode
+        {
+            get => keyboardMode;
+            set { keyboardMode = value; OnPropertyChanged(nameof(KeyboardMode)); }
+        }
+
+        public TimeSpan KeyboardHoldDuration
+        {
+            get => keyboardHoldDuration;
+            set { keyboardHoldDuration = value; OnPropertyChanged(nameof(KeyboardHoldDuration)); }
+        }
+
+        public Key TriggerKey
+        {
+            get => (Key)triggerKey;
+            set { triggerKey = (int)value; OnPropertyChanged(nameof(TriggerKey)); }
+        }
+
+        public ModifierKeys TriggerKeyModifiers
+        {
+            get => (ModifierKeys)triggerKeyModifiers;
+            set { triggerKeyModifiers = (int)value; OnPropertyChanged(nameof(TriggerKeyModifiers)); }
+        }
+
+        public TimeSpan Interval
+        {
+            get => interval;
+            set { interval = value; OnPropertyChanged(nameof(Interval)); }
+        }
+
+        public string Mode
+        {
+            get => mode;
+            set { mode = value; OnPropertyChanged(nameof(Mode)); }
+        }
+
+        public TimeSpan TotalDuration
+        {
+            get => totalDuration;
+            set { totalDuration = value; OnPropertyChanged(nameof(TotalDuration)); }
+        }
+
+        public string Theme
+        {
+            get => theme;
+            set { theme = value; OnPropertyChanged(nameof(Theme)); }
+        }
+
+        protected void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
     }
 }

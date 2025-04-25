@@ -1,16 +1,17 @@
 using System;
-using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Forms;
-using AutoClicker.Utilities;
+using AutoClacker.Models;
+using AutoClacker.ViewModels;
+using AutoClacker.Utilities;
+using System.Windows.Input;
 
-namespace AutoClicker
+namespace AutoClacker.Controllers
 {
     public class AutomationController
     {
-        private MainForm form;
+        private readonly MainViewModel viewModel;
         private CancellationTokenSource cts;
         private ApplicationDetector detector = new ApplicationDetector();
 
@@ -32,35 +33,58 @@ namespace AutoClicker
 
         private struct RECT { public int Left, Top, Right, Bottom; }
 
-        public AutomationController(MainForm form)
+        public AutomationController(MainViewModel viewModel)
         {
-            this.form = form;
+            this.viewModel = viewModel;
         }
 
-        public async Task StartAutomation(Settings settings)
+        public async Task StartAutomation()
         {
             if (cts != null) return; // Already running
             cts = new CancellationTokenSource();
-            var localCts = cts; // Store a local reference to avoid null issues
+            var localCts = cts;
 
-            form.Invoke((MethodInvoker)(() => form.UpdateStatus("Running", Color.Green)));
+            viewModel.UpdateStatus("Running", "Green");
 
             try
             {
+                var settings = new Settings
+                {
+                    ClickScope = Properties.Settings.Default.ClickScope,
+                    TargetApplication = Properties.Settings.Default.TargetApplication,
+                    ActionType = Properties.Settings.Default.ActionType,
+                    MouseButton = Properties.Settings.Default.MouseButton,
+                    MouseMode = Properties.Settings.Default.MouseMode,
+                    MouseHoldDuration = Properties.Settings.Default.MouseHoldDuration,
+                    KeyboardKey = (Key)Properties.Settings.Default.KeyboardKey,
+                    KeyboardMode = Properties.Settings.Default.KeyboardMode,
+                    KeyboardHoldDuration = Properties.Settings.Default.KeyboardHoldDuration,
+                    TriggerKey = (Key)Properties.Settings.Default.TriggerKey,
+                    TriggerKeyModifiers = (ModifierKeys)Properties.Settings.Default.TriggerKeyModifiers,
+                    Interval = Properties.Settings.Default.Interval,
+                    Mode = Properties.Settings.Default.Mode,
+                    TotalDuration = Properties.Settings.Default.TotalDuration,
+                    Theme = Properties.Settings.Default.Theme
+                };
+
                 if (settings.ClickScope == "Restricted" && !ValidateTargetApplication(settings))
                 {
                     StopAutomation("Target application not active");
                     return;
                 }
 
-                if (settings.ActionType == "Mouse" && settings.MouseHoldDuration > settings.Interval ||
-                    settings.ActionType == "Keyboard" && settings.KeyboardHoldDuration > settings.Interval)
+                // Only check hold duration if it's actually being used
+                if (settings.ActionType == "Mouse" && settings.MouseMode == "Hold" && settings.MouseHoldDuration > settings.Interval)
                 {
-                    StopAutomation("Hold duration must be less than or equal to interval");
+                    StopAutomation("Mouse hold duration must be less than or equal to interval");
+                    return;
+                }
+                if (settings.ActionType == "Keyboard" && settings.KeyboardMode == "Hold" && settings.KeyboardHoldDuration != TimeSpan.Zero && settings.KeyboardHoldDuration > settings.Interval)
+                {
+                    StopAutomation("Keyboard hold duration must be less than or equal to interval");
                     return;
                 }
 
-                // Ensure interval is at least 1ms
                 TimeSpan effectiveInterval = settings.Interval.TotalMilliseconds < 1 ? TimeSpan.FromMilliseconds(1) : settings.Interval;
 
                 var stopwatch = System.Diagnostics.Stopwatch.StartNew();
@@ -93,7 +117,7 @@ namespace AutoClicker
             cts?.Cancel();
             cts?.Dispose();
             cts = null;
-            form.Invoke((MethodInvoker)(() => form.UpdateStatus(message, Color.Red)));
+            viewModel.UpdateStatus(message, "Red");
         }
 
         private bool ValidateTargetApplication(Settings settings)
@@ -115,25 +139,35 @@ namespace AutoClicker
                 }
                 else
                 {
+                    Console.WriteLine($"Holding mouse for {settings.MouseHoldDuration.TotalMilliseconds} ms, Interval: {settings.Interval.TotalMilliseconds} ms");
                     MouseEvent(down);
                     await Task.Delay(settings.MouseHoldDuration);
                     MouseEvent(up);
-                    await Task.Delay(settings.Interval - settings.MouseHoldDuration);
+                    var remainingDelay = settings.Interval - settings.MouseHoldDuration;
+                    if (remainingDelay.TotalMilliseconds > 0)
+                    {
+                        await Task.Delay(remainingDelay);
+                    }
                 }
             }
             else
             {
                 if (settings.KeyboardMode == "Press")
                 {
-                    KeybdEvent((byte)settings.KeyboardKey, 0);
-                    KeybdEvent((byte)settings.KeyboardKey, 2);
+                    KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 0);
+                    KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 2);
                 }
                 else
                 {
-                    KeybdEvent((byte)settings.KeyboardKey, 0);
+                    Console.WriteLine($"Holding keyboard for {settings.KeyboardHoldDuration.TotalMilliseconds} ms, Interval: {settings.Interval.TotalMilliseconds} ms");
+                    KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 0);
                     await Task.Delay(settings.KeyboardHoldDuration);
-                    KeybdEvent((byte)settings.KeyboardKey, 2);
-                    await Task.Delay(settings.Interval - settings.KeyboardHoldDuration);
+                    KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 2);
+                    var remainingDelay = settings.Interval - settings.KeyboardHoldDuration;
+                    if (remainingDelay.TotalMilliseconds > 0)
+                    {
+                        await Task.Delay(remainingDelay);
+                    }
                 }
             }
         }
@@ -164,15 +198,20 @@ namespace AutoClicker
                 }
                 else
                 {
+                    Console.WriteLine($"Holding mouse (restricted) for {settings.MouseHoldDuration.TotalMilliseconds} ms, Interval: {settings.Interval.TotalMilliseconds} ms");
                     PostMessage(hWnd, down, IntPtr.Zero, lParam);
                     await Task.Delay(settings.MouseHoldDuration);
                     PostMessage(hWnd, up, IntPtr.Zero, lParam);
-                    await Task.Delay(settings.Interval - settings.MouseHoldDuration);
+                    var remainingDelay = settings.Interval - settings.MouseHoldDuration;
+                    if (remainingDelay.TotalMilliseconds > 0)
+                    {
+                        await Task.Delay(remainingDelay);
+                    }
                 }
             }
             else
             {
-                IntPtr wParam = (IntPtr)settings.KeyboardKey;
+                IntPtr wParam = (IntPtr)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey);
                 if (settings.KeyboardMode == "Press")
                 {
                     PostMessage(hWnd, WM_KEYDOWN, wParam, IntPtr.Zero);
@@ -180,10 +219,15 @@ namespace AutoClicker
                 }
                 else
                 {
+                    Console.WriteLine($"Holding keyboard (restricted) for {settings.KeyboardHoldDuration.TotalMilliseconds} ms, Interval: {settings.Interval.TotalMilliseconds} ms");
                     PostMessage(hWnd, WM_KEYDOWN, wParam, IntPtr.Zero);
                     await Task.Delay(settings.KeyboardHoldDuration);
                     PostMessage(hWnd, WM_KEYUP, wParam, IntPtr.Zero);
-                    await Task.Delay(settings.Interval - settings.KeyboardHoldDuration);
+                    var remainingDelay = settings.Interval - settings.KeyboardHoldDuration;
+                    if (remainingDelay.TotalMilliseconds > 0)
+                    {
+                        await Task.Delay(remainingDelay);
+                    }
                 }
             }
         }
