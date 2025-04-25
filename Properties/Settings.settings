@@ -17,8 +17,17 @@
     <Setting Name="MouseMode" Type="System.String" Scope="User">
       <Value Profile="(Default)">Click</Value>
     </Setting>
+    <Setting Name="ClickMode" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Constant</Value>
+    </Setting>
+    <Setting Name="ClickDuration" Type="System.TimeSpan" Scope="User">
+      <Value Profile="(Default)">00:00:00</Value>
+    </Setting>
     <Setting Name="MouseHoldDuration" Type="System.TimeSpan" Scope="User">
       <Value Profile="(Default)">00:00:01</Value>
+    </Setting>
+    <Setting Name="HoldMode" Type="System.String" Scope="User">
+      <Value Profile="(Default)">HoldDuration</Value>
     </Setting>
     <Setting Name="KeyboardKey" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">0</Value>

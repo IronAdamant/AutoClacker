@@ -1,4 +1,4 @@
-# Automatic Mouse & Keyboard Clicker
+# Autoclacker
 
 This application automates mouse clicks and keyboard key presses on Windows. It can operate globally or be restricted to a specific application, making it ideal for offline tasks such as automating actions in offline games or applications.
 

@@ -27,7 +27,6 @@ namespace AutoClacker.ViewModels
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        // Parameterless constructor for WPF XAML
         public MainViewModel()
         {
             settings = new Settings
@@ -37,7 +36,10 @@ namespace AutoClacker.ViewModels
                 ActionType = Properties.Settings.Default.ActionType,
                 MouseButton = Properties.Settings.Default.MouseButton,
                 MouseMode = Properties.Settings.Default.MouseMode,
+                ClickMode = Properties.Settings.Default.ClickMode,
+                ClickDuration = Properties.Settings.Default.ClickDuration,
                 MouseHoldDuration = Properties.Settings.Default.MouseHoldDuration,
+                HoldMode = Properties.Settings.Default.HoldMode,
                 KeyboardKey = (Key)Properties.Settings.Default.KeyboardKey,
                 KeyboardMode = Properties.Settings.Default.KeyboardMode,
                 KeyboardHoldDuration = Properties.Settings.Default.KeyboardHoldDuration,
@@ -60,17 +62,23 @@ namespace AutoClacker.ViewModels
             SetHoldDurationCommand = new RelayCommand(SetHoldDuration);
             RefreshApplicationsCommand = new RelayCommand(RefreshApplications);
 
-            // Ensure initial UI updates
             OnPropertyChanged(nameof(TriggerKeyDisplay));
             OnPropertyChanged(nameof(IsMouseMode));
             OnPropertyChanged(nameof(IsKeyboardMode));
+            OnPropertyChanged(nameof(IsClickModeVisible));
+            OnPropertyChanged(nameof(IsHoldModeVisible));
+            OnPropertyChanged(nameof(IsPressModeVisible));
+            OnPropertyChanged(nameof(IsHoldModeVisibleKeyboard));
+            OnPropertyChanged(nameof(IsClickDurationMode));
+            OnPropertyChanged(nameof(IsHoldDurationMode));
+            OnPropertyChanged(nameof(IsKeyboardHoldDurationMode));
             OnPropertyChanged(nameof(IsTimerMode));
             OnPropertyChanged(nameof(IsRestrictedMode));
+            Console.WriteLine($"Initial MouseMode: {MouseMode}, ClickMode: {ClickMode}, HoldMode: {HoldMode}, KeyboardMode: {KeyboardMode}");
         }
 
         public MainViewModel(Window window) : this()
         {
-            // HotkeyManager will be initialized later in InitializeHotkeyManager
         }
 
         public void InitializeHotkeyManager(Window window)
@@ -137,8 +145,62 @@ namespace AutoClacker.ViewModels
             {
                 settings.MouseMode = value;
                 OnPropertyChanged(nameof(MouseMode));
-                OnPropertyChanged(nameof(IsMouseHoldMode));
+                OnPropertyChanged(nameof(IsClickModeVisible));
+                OnPropertyChanged(nameof(IsHoldModeVisible));
+                OnPropertyChanged(nameof(IsClickDurationMode));
+                OnPropertyChanged(nameof(IsHoldDurationMode));
                 Properties.Settings.Default.MouseMode = value;
+                Properties.Settings.Default.Save();
+                Console.WriteLine($"MouseMode changed to: {value}, IsClickModeVisible: {IsClickModeVisible}, IsHoldModeVisible: {IsHoldModeVisible}");
+            }
+        }
+
+        public string ClickMode
+        {
+            get => settings.ClickMode;
+            set
+            {
+                settings.ClickMode = value;
+                OnPropertyChanged(nameof(ClickMode));
+                OnPropertyChanged(nameof(IsClickDurationMode));
+                Properties.Settings.Default.ClickMode = value;
+                Properties.Settings.Default.Save();
+                Console.WriteLine($"ClickMode changed to: {value}, IsClickDurationMode: {IsClickDurationMode}");
+            }
+        }
+
+        public int ClickDurationMinutes
+        {
+            get => settings.ClickDuration.Minutes;
+            set
+            {
+                settings.ClickDuration = new TimeSpan(0, 0, value, settings.ClickDuration.Seconds, settings.ClickDuration.Milliseconds);
+                OnPropertyChanged(nameof(ClickDurationMinutes));
+                Properties.Settings.Default.ClickDuration = settings.ClickDuration;
+                Properties.Settings.Default.Save();
+            }
+        }
+
+        public int ClickDurationSeconds
+        {
+            get => settings.ClickDuration.Seconds;
+            set
+            {
+                settings.ClickDuration = new TimeSpan(0, 0, settings.ClickDuration.Minutes, value, settings.ClickDuration.Milliseconds);
+                OnPropertyChanged(nameof(ClickDurationSeconds));
+                Properties.Settings.Default.ClickDuration = settings.ClickDuration;
+                Properties.Settings.Default.Save();
+            }
+        }
+
+        public int ClickDurationMilliseconds
+        {
+            get => settings.ClickDuration.Milliseconds;
+            set
+            {
+                settings.ClickDuration = new TimeSpan(0, 0, settings.ClickDuration.Minutes, settings.ClickDuration.Seconds, value);
+                OnPropertyChanged(nameof(ClickDurationMilliseconds));
+                Properties.Settings.Default.ClickDuration = settings.ClickDuration;
                 Properties.Settings.Default.Save();
             }
         }
@@ -179,6 +241,20 @@ namespace AutoClacker.ViewModels
             }
         }
 
+        public string HoldMode
+        {
+            get => settings.HoldMode;
+            set
+            {
+                settings.HoldMode = value;
+                OnPropertyChanged(nameof(HoldMode));
+                OnPropertyChanged(nameof(IsHoldDurationMode));
+                Properties.Settings.Default.HoldMode = value;
+                Properties.Settings.Default.Save();
+                Console.WriteLine($"HoldMode changed to: {value}, IsHoldDurationMode: {IsHoldDurationMode}");
+            }
+        }
+
         public Key KeyboardKey
         {
             get => settings.KeyboardKey;
@@ -201,9 +277,12 @@ namespace AutoClacker.ViewModels
             {
                 settings.KeyboardMode = value;
                 OnPropertyChanged(nameof(KeyboardMode));
-                OnPropertyChanged(nameof(IsKeyboardHoldMode));
+                OnPropertyChanged(nameof(IsPressModeVisible));
+                OnPropertyChanged(nameof(IsHoldModeVisibleKeyboard));
+                OnPropertyChanged(nameof(IsKeyboardHoldDurationMode));
                 Properties.Settings.Default.KeyboardMode = value;
                 Properties.Settings.Default.Save();
+                Console.WriteLine($"KeyboardMode changed to: {value}, IsPressModeVisible: {IsPressModeVisible}, IsHoldModeVisibleKeyboard: {IsHoldModeVisibleKeyboard}");
             }
         }
 
@@ -260,7 +339,7 @@ namespace AutoClacker.ViewModels
             }
         }
 
-        public string TriggerKeyDisplay => TriggerKey.ToString();
+        public string TriggerKeyDisplay => TriggerKey == Key.F5 ? "F5" : "Not Set";
 
         public ModifierKeys TriggerKeyModifiers
         {
@@ -398,9 +477,13 @@ namespace AutoClacker.ViewModels
 
         public bool IsMouseMode => ActionType == "Mouse";
         public bool IsKeyboardMode => ActionType == "Keyboard";
-        public bool IsMouseHoldMode => MouseMode == "Hold";
-        public bool IsKeyboardHoldMode => KeyboardMode == "Hold";
-        public bool IsKeyboardHoldDurationMode => IsKeyboardHoldMode && settings.KeyboardHoldDuration != TimeSpan.Zero;
+        public bool IsClickModeVisible => MouseMode == "Click";
+        public bool IsHoldModeVisible => MouseMode == "Hold";
+        public bool IsClickDurationMode => MouseMode == "Click" && ClickMode == "Duration";
+        public bool IsHoldDurationMode => MouseMode == "Hold" && HoldMode == "HoldDuration";
+        public bool IsPressModeVisible => KeyboardMode == "Press";
+        public bool IsHoldModeVisibleKeyboard => KeyboardMode == "Hold";
+        public bool IsKeyboardHoldDurationMode => KeyboardMode == "Hold" && settings.KeyboardHoldDuration != TimeSpan.Zero;
         public bool IsTimerMode => Mode == "Timer";
         public bool IsRestrictedMode => ClickScope == "Restricted";
 
@@ -543,7 +626,10 @@ namespace AutoClacker.ViewModels
             settings.ActionType = Properties.Settings.Default.ActionType;
             settings.MouseButton = Properties.Settings.Default.MouseButton;
             settings.MouseMode = Properties.Settings.Default.MouseMode;
+            settings.ClickMode = Properties.Settings.Default.ClickMode;
+            settings.ClickDuration = Properties.Settings.Default.ClickDuration;
             settings.MouseHoldDuration = Properties.Settings.Default.MouseHoldDuration;
+            settings.HoldMode = Properties.Settings.Default.HoldMode;
             settings.KeyboardKey = (Key)Properties.Settings.Default.KeyboardKey;
             settings.KeyboardMode = Properties.Settings.Default.KeyboardMode;
             settings.KeyboardHoldDuration = Properties.Settings.Default.KeyboardHoldDuration;
@@ -559,9 +645,14 @@ namespace AutoClacker.ViewModels
             OnPropertyChanged(nameof(ActionType));
             OnPropertyChanged(nameof(MouseButton));
             OnPropertyChanged(nameof(MouseMode));
+            OnPropertyChanged(nameof(ClickMode));
+            OnPropertyChanged(nameof(ClickDurationMinutes));
+            OnPropertyChanged(nameof(ClickDurationSeconds));
+            OnPropertyChanged(nameof(ClickDurationMilliseconds));
             OnPropertyChanged(nameof(MouseHoldDurationMinutes));
             OnPropertyChanged(nameof(MouseHoldDurationSeconds));
             OnPropertyChanged(nameof(MouseHoldDurationMilliseconds));
+            OnPropertyChanged(nameof(HoldMode));
             OnPropertyChanged(nameof(KeyboardKey));
             OnPropertyChanged(nameof(KeyboardKeyDisplay));
             OnPropertyChanged(nameof(KeyboardMode));
@@ -581,13 +672,16 @@ namespace AutoClacker.ViewModels
             OnPropertyChanged(nameof(Theme));
             OnPropertyChanged(nameof(IsMouseMode));
             OnPropertyChanged(nameof(IsKeyboardMode));
-            OnPropertyChanged(nameof(IsMouseHoldMode));
-            OnPropertyChanged(nameof(IsKeyboardHoldMode));
+            OnPropertyChanged(nameof(IsClickModeVisible));
+            OnPropertyChanged(nameof(IsHoldModeVisible));
+            OnPropertyChanged(nameof(IsClickDurationMode));
+            OnPropertyChanged(nameof(IsHoldDurationMode));
+            OnPropertyChanged(nameof(IsPressModeVisible));
+            OnPropertyChanged(nameof(IsHoldModeVisibleKeyboard));
             OnPropertyChanged(nameof(IsKeyboardHoldDurationMode));
             OnPropertyChanged(nameof(IsTimerMode));
             OnPropertyChanged(nameof(IsRestrictedMode));
 
-            // Re-register hotkey after reset
             hotkeyManager?.RegisterTriggerHotkey(settings.TriggerKey, settings.TriggerKeyModifiers);
         }
 
@@ -600,7 +694,6 @@ namespace AutoClacker.ViewModels
 
         public void OnKeyDown(KeyEventArgs e)
         {
-            // Skip key handling if the source is a TextBox (e.g., user is typing in a TextBox)
             if (e.OriginalSource is TextBox)
             {
                 return;

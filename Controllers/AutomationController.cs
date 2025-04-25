@@ -55,7 +55,10 @@ namespace AutoClacker.Controllers
                     ActionType = Properties.Settings.Default.ActionType,
                     MouseButton = Properties.Settings.Default.MouseButton,
                     MouseMode = Properties.Settings.Default.MouseMode,
+                    ClickMode = Properties.Settings.Default.ClickMode,
+                    ClickDuration = Properties.Settings.Default.ClickDuration,
                     MouseHoldDuration = Properties.Settings.Default.MouseHoldDuration,
+                    HoldMode = Properties.Settings.Default.HoldMode,
                     KeyboardKey = (Key)Properties.Settings.Default.KeyboardKey,
                     KeyboardMode = Properties.Settings.Default.KeyboardMode,
                     KeyboardHoldDuration = Properties.Settings.Default.KeyboardHoldDuration,
@@ -74,7 +77,7 @@ namespace AutoClacker.Controllers
                 }
 
                 // Only check hold duration if it's actually being used
-                if (settings.ActionType == "Mouse" && settings.MouseMode == "Hold" && settings.MouseHoldDuration > settings.Interval)
+                if (settings.ActionType == "Mouse" && settings.MouseMode == "Hold" && settings.HoldMode == "HoldDuration" && settings.MouseHoldDuration > settings.Interval)
                 {
                     StopAutomation("Mouse hold duration must be less than or equal to interval");
                     return;
@@ -88,18 +91,67 @@ namespace AutoClacker.Controllers
                 TimeSpan effectiveInterval = settings.Interval.TotalMilliseconds < 1 ? TimeSpan.FromMilliseconds(1) : settings.Interval;
 
                 var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+                bool mouseButtonHeld = false;
+
                 while (!localCts.IsCancellationRequested)
                 {
+                    // Track the start time of the cycle
+                    var cycleStartTime = stopwatch.Elapsed;
+
                     if (settings.ClickScope == "Restricted")
                         await PerformRestrictedAction(settings);
                     else
-                        await PerformGlobalAction(settings);
+                    {
+                        if (settings.ActionType == "Mouse" && settings.MouseMode == "Hold" && settings.HoldMode == "ConstantHold")
+                        {
+                            // For Constant Hold, hold the button down and don't release until automation stops
+                            if (!mouseButtonHeld)
+                            {
+                                uint down = settings.MouseButton == "Left" ? 0x0002U : 0x0008U;
+                                MouseEvent(down);
+                                mouseButtonHeld = true;
+                            }
+                        }
+                        else
+                        {
+                            // Ensure the button is released if we're not in Constant Hold
+                            if (mouseButtonHeld)
+                            {
+                                uint up = settings.MouseButton == "Left" ? 0x0004U : 0x0010U;
+                                MouseEvent(up);
+                                mouseButtonHeld = false;
+                            }
+                            await PerformGlobalAction(settings);
+                        }
+                    }
 
-                    if (settings.Mode == "Timer" && stopwatch.Elapsed >= settings.TotalDuration)
+                    // Apply Click Duration for Mouse "Click" actions
+                    if (settings.ActionType == "Mouse" && settings.MouseMode == "Click" && settings.ClickMode == "Duration" && settings.ClickDuration != TimeSpan.Zero && stopwatch.Elapsed >= settings.ClickDuration)
+                    {
                         break;
+                    }
+                    // Apply Total Duration timer only for Keyboard "Press" actions
+                    if (settings.ActionType == "Keyboard" && settings.KeyboardMode == "Press" && settings.Mode == "Timer" && stopwatch.Elapsed >= settings.TotalDuration)
+                    {
+                        break;
+                    }
 
-                    await Task.Delay(effectiveInterval, localCts.Token);
+                    // Calculate elapsed time for this cycle and adjust the delay to match the interval
+                    var cycleElapsedTime = stopwatch.Elapsed - cycleStartTime;
+                    var remainingCycleTime = effectiveInterval - cycleElapsedTime;
+                    if (remainingCycleTime.TotalMilliseconds > 0)
+                    {
+                        await Task.Delay(remainingCycleTime, localCts.Token);
+                    }
                 }
+
+                // Ensure the mouse button is released if it was held
+                if (mouseButtonHeld)
+                {
+                    uint up = settings.MouseButton == "Left" ? 0x0004U : 0x0010U;
+                    MouseEvent(up);
+                }
+
                 StopAutomation("Automation completed");
             }
             catch (TaskCanceledException)
@@ -137,17 +189,12 @@ namespace AutoClacker.Controllers
                     MouseEvent(down);
                     MouseEvent(up);
                 }
-                else
+                else if (settings.HoldMode == "HoldDuration")
                 {
                     Console.WriteLine($"Holding mouse for {settings.MouseHoldDuration.TotalMilliseconds} ms, Interval: {settings.Interval.TotalMilliseconds} ms");
                     MouseEvent(down);
                     await Task.Delay(settings.MouseHoldDuration);
                     MouseEvent(up);
-                    var remainingDelay = settings.Interval - settings.MouseHoldDuration;
-                    if (remainingDelay.TotalMilliseconds > 0)
-                    {
-                        await Task.Delay(remainingDelay);
-                    }
                 }
             }
             else
@@ -163,11 +210,6 @@ namespace AutoClacker.Controllers
                     KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 0);
                     await Task.Delay(settings.KeyboardHoldDuration);
                     KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 2);
-                    var remainingDelay = settings.Interval - settings.KeyboardHoldDuration;
-                    if (remainingDelay.TotalMilliseconds > 0)
-                    {
-                        await Task.Delay(remainingDelay);
-                    }
                 }
             }
         }
@@ -196,17 +238,12 @@ namespace AutoClacker.Controllers
                     PostMessage(hWnd, down, IntPtr.Zero, lParam);
                     PostMessage(hWnd, up, IntPtr.Zero, lParam);
                 }
-                else
+                else if (settings.HoldMode == "HoldDuration")
                 {
                     Console.WriteLine($"Holding mouse (restricted) for {settings.MouseHoldDuration.TotalMilliseconds} ms, Interval: {settings.Interval.TotalMilliseconds} ms");
                     PostMessage(hWnd, down, IntPtr.Zero, lParam);
                     await Task.Delay(settings.MouseHoldDuration);
                     PostMessage(hWnd, up, IntPtr.Zero, lParam);
-                    var remainingDelay = settings.Interval - settings.MouseHoldDuration;
-                    if (remainingDelay.TotalMilliseconds > 0)
-                    {
-                        await Task.Delay(remainingDelay);
-                    }
                 }
             }
             else
@@ -223,11 +260,6 @@ namespace AutoClacker.Controllers
                     PostMessage(hWnd, WM_KEYDOWN, wParam, IntPtr.Zero);
                     await Task.Delay(settings.KeyboardHoldDuration);
                     PostMessage(hWnd, WM_KEYUP, wParam, IntPtr.Zero);
-                    var remainingDelay = settings.Interval - settings.KeyboardHoldDuration;
-                    if (remainingDelay.TotalMilliseconds > 0)
-                    {
-                        await Task.Delay(remainingDelay);
-                    }
                 }
             }
         }

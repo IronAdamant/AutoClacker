@@ -60,11 +60,38 @@ namespace AutoClacker.Properties
 
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Constant")]
+        public string ClickMode
+        {
+            get { return ((string)(this["ClickMode"])); }
+            set { this["ClickMode"] = value; }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("00:00:00")]
+        public global::System.TimeSpan ClickDuration
+        {
+            get { return ((global::System.TimeSpan)(this["ClickDuration"])); }
+            set { this["ClickDuration"] = value; }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("00:00:01")]
         public global::System.TimeSpan MouseHoldDuration
         {
             get { return ((global::System.TimeSpan)(this["MouseHoldDuration"])); }
             set { this["MouseHoldDuration"] = value; }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("HoldDuration")]
+        public string HoldMode
+        {
+            get { return ((string)(this["HoldMode"])); }
+            set { this["HoldMode"] = value; }
         }
 
         [global::System.Configuration.UserScopedSettingAttribute()]

@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:AutoClacker.ViewModels"
         xmlns:converters="clr-namespace:AutoClacker.Converters"
-        Title="Automatic Mouse &amp; Keyboard Clicker" Height="650" Width="600">
+        Title="Autoclacker" Height="650" Width="600">
     <Window.Resources>
         <converters:StringToBooleanConverter x:Key="StringToBooleanConverter"/>
         <converters:StringToCommandConverter x:Key="StringToCommandConverter"/>
@@ -37,7 +37,6 @@
     </Window.Resources>
     <Grid Margin="10">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -82,14 +81,37 @@
                     <RadioButton Content="Click" IsChecked="{Binding MouseMode, Converter={StaticResource StringToBooleanConverter}, ConverterParameter=Click}" Command="{Binding Path=MouseMode, Converter={StaticResource StringToCommandConverter}, ConverterParameter=Click}"/>
                     <RadioButton Content="Hold" IsChecked="{Binding MouseMode, Converter={StaticResource StringToBooleanConverter}, ConverterParameter=Hold}" Command="{Binding Path=MouseMode, Converter={StaticResource StringToCommandConverter}, ConverterParameter=Hold}"/>
                 </StackPanel>
-                <StackPanel Orientation="Horizontal" IsEnabled="{Binding IsMouseHoldMode}">
-                    <Label Content="Hold Duration:"/>
-                    <TextBox Text="{Binding MouseHoldDurationMinutes}"/>
-                    <Label Content="m"/>
-                    <TextBox Text="{Binding MouseHoldDurationSeconds}"/>
-                    <Label Content="s"/>
-                    <TextBox Text="{Binding MouseHoldDurationMilliseconds}"/>
-                    <Label Content="ms"/>
+                <!-- Click Options -->
+                <StackPanel Visibility="{Binding IsClickModeVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton Content="Constant Clicks" IsChecked="{Binding ClickMode, Converter={StaticResource StringToBooleanConverter}, ConverterParameter=Constant}" Command="{Binding Path=ClickMode, Converter={StaticResource StringToCommandConverter}, ConverterParameter=Constant}"/>
+                        <RadioButton Content="Click Duration" IsChecked="{Binding ClickMode, Converter={StaticResource StringToBooleanConverter}, ConverterParameter=Duration}" Command="{Binding Path=ClickMode, Converter={StaticResource StringToCommandConverter}, ConverterParameter=Duration}"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Visibility="{Binding IsClickDurationMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Label Content="Click Duration:"/>
+                        <TextBox Text="{Binding ClickDurationMinutes}"/>
+                        <Label Content="m"/>
+                        <TextBox Text="{Binding ClickDurationSeconds}"/>
+                        <Label Content="s"/>
+                        <TextBox Text="{Binding ClickDurationMilliseconds}"/>
+                        <Label Content="ms"/>
+                    </StackPanel>
+                </StackPanel>
+                <!-- Hold Options -->
+                <StackPanel Visibility="{Binding IsHoldModeVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton Content="Constant Hold" IsChecked="{Binding HoldMode, Converter={StaticResource StringToBooleanConverter}, ConverterParameter=ConstantHold}" Command="{Binding Path=HoldMode, Converter={StaticResource StringToCommandConverter}, ConverterParameter=ConstantHold}"/>
+                        <RadioButton Content="Hold Duration" IsChecked="{Binding HoldMode, Converter={StaticResource StringToBooleanConverter}, ConverterParameter=HoldDuration}" Command="{Binding Path=HoldMode, Converter={StaticResource StringToCommandConverter}, ConverterParameter=HoldDuration}"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Visibility="{Binding IsHoldDurationMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Label Content="Hold Duration:"/>
+                        <TextBox Text="{Binding MouseHoldDurationMinutes}"/>
+                        <Label Content="m"/>
+                        <TextBox Text="{Binding MouseHoldDurationSeconds}"/>
+                        <Label Content="s"/>
+                        <TextBox Text="{Binding MouseHoldDurationMilliseconds}"/>
+                        <Label Content="ms"/>
+                    </StackPanel>
                 </StackPanel>
             </StackPanel>
         </GroupBox>
@@ -105,18 +127,37 @@
                     <RadioButton Content="Press" IsChecked="{Binding KeyboardMode, Converter={StaticResource StringToBooleanConverter}, ConverterParameter=Press}" Command="{Binding Path=KeyboardMode, Converter={StaticResource StringToCommandConverter}, ConverterParameter=Press}"/>
                     <RadioButton Content="Hold" IsChecked="{Binding KeyboardMode, Converter={StaticResource StringToBooleanConverter}, ConverterParameter=Hold}" Command="{Binding Path=KeyboardMode, Converter={StaticResource StringToCommandConverter}, ConverterParameter=Hold}"/>
                 </StackPanel>
-                <StackPanel Orientation="Horizontal" Visibility="{Binding IsKeyboardHoldMode, Converter={StaticResource BooleanToVisibilityConverter}}">
-                    <RadioButton Content="Constant" IsChecked="{Binding IsKeyboardHoldDurationMode, Mode=OneWay, Converter={StaticResource InverseBooleanConverter}}" Command="{Binding SetConstantCommand}"/>
-                    <RadioButton Content="Hold Duration" IsChecked="{Binding IsKeyboardHoldDurationMode, Mode=OneWay}" Command="{Binding SetHoldDurationCommand}"/>
+                <!-- Press Options -->
+                <StackPanel Visibility="{Binding IsPressModeVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton Content="Constant" IsChecked="{Binding Mode, Converter={StaticResource StringToBooleanConverter}, ConverterParameter=Constant}" Command="{Binding Path=Mode, Converter={StaticResource StringToCommandConverter}, ConverterParameter=Constant}"/>
+                        <RadioButton Content="Press Timer" IsChecked="{Binding Mode, Converter={StaticResource StringToBooleanConverter}, ConverterParameter=Timer}" Command="{Binding Path=Mode, Converter={StaticResource StringToCommandConverter}, ConverterParameter=Timer}"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Visibility="{Binding IsTimerMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Label Content="Total Duration:"/>
+                        <TextBox Text="{Binding TotalDurationMinutes}"/>
+                        <Label Content="m"/>
+                        <TextBox Text="{Binding TotalDurationSeconds}"/>
+                        <Label Content="s"/>
+                        <TextBox Text="{Binding TotalDurationMilliseconds}"/>
+                        <Label Content="ms"/>
+                    </StackPanel>
                 </StackPanel>
-                <StackPanel Orientation="Horizontal" Visibility="{Binding IsKeyboardHoldMode, Converter={StaticResource BooleanToVisibilityConverter}}" IsEnabled="{Binding IsKeyboardHoldDurationMode}">
-                    <Label Content="Hold Duration:"/>
-                    <TextBox Text="{Binding KeyboardHoldDurationMinutes}"/>
-                    <Label Content="m"/>
-                    <TextBox Text="{Binding KeyboardHoldDurationSeconds}"/>
-                    <Label Content="s"/>
-                    <TextBox Text="{Binding KeyboardHoldDurationMilliseconds}"/>
-                    <Label Content="ms"/>
+                <!-- Hold Options -->
+                <StackPanel Visibility="{Binding IsHoldModeVisibleKeyboard, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton Content="Constant" IsChecked="{Binding IsKeyboardHoldDurationMode, Mode=OneWay, Converter={StaticResource InverseBooleanConverter}}" Command="{Binding SetConstantCommand}"/>
+                        <RadioButton Content="Hold Duration" IsChecked="{Binding IsKeyboardHoldDurationMode, Mode=OneWay}" Command="{Binding SetHoldDurationCommand}"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Visibility="{Binding IsKeyboardHoldDurationMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Label Content="Hold Duration:"/>
+                        <TextBox Text="{Binding KeyboardHoldDurationMinutes}"/>
+                        <Label Content="m"/>
+                        <TextBox Text="{Binding KeyboardHoldDurationSeconds}"/>
+                        <Label Content="s"/>
+                        <TextBox Text="{Binding KeyboardHoldDurationMilliseconds}"/>
+                        <Label Content="ms"/>
+                    </StackPanel>
                 </StackPanel>
             </StackPanel>
         </GroupBox>
@@ -144,25 +185,8 @@
             </StackPanel>
         </GroupBox>
 
-        <!-- Mode -->
-        <GroupBox Grid.Row="3" Grid.Column="0" Header="Mode">
-            <StackPanel>
-                <RadioButton Content="Constant" IsChecked="{Binding Mode, Converter={StaticResource StringToBooleanConverter}, ConverterParameter=Constant}" Command="{Binding Path=Mode, Converter={StaticResource StringToCommandConverter}, ConverterParameter=Constant}"/>
-                <RadioButton Content="Timer" IsChecked="{Binding Mode, Converter={StaticResource StringToBooleanConverter}, ConverterParameter=Timer}" Command="{Binding Path=Mode, Converter={StaticResource StringToCommandConverter}, ConverterParameter=Timer}"/>
-                <Label Content="Total Duration:" HorizontalAlignment="Left" IsEnabled="{Binding IsTimerMode}"/>
-                <StackPanel Orientation="Horizontal" IsEnabled="{Binding IsTimerMode}">
-                    <TextBox Text="{Binding TotalDurationMinutes}"/>
-                    <Label Content="m"/>
-                    <TextBox Text="{Binding TotalDurationSeconds}"/>
-                    <Label Content="s"/>
-                    <TextBox Text="{Binding TotalDurationMilliseconds}"/>
-                    <Label Content="ms"/>
-                </StackPanel>
-            </StackPanel>
-        </GroupBox>
-
         <!-- Status and Buttons -->
-        <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Center">
+        <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Center">
             <Label Content="{Binding StatusText}" Foreground="{Binding StatusColor}" BorderBrush="Black" BorderThickness="1" Padding="10,5"/>
             <Button Content="Reset to Default" Command="{Binding ResetSettingsCommand}"/>
             <Button Content="Options"/>

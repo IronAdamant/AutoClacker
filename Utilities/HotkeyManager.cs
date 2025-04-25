@@ -45,7 +45,8 @@ namespace AutoClacker.Utilities
             if (modifiers.HasFlag(ModifierKeys.Windows)) fsModifiers |= MOD_WIN;
 
             uint vk = (uint)KeyInterop.VirtualKeyFromKey(key);
-            RegisterHotKey(hWnd, hotkeyId, fsModifiers, vk);
+            bool success = RegisterHotKey(hWnd, hotkeyId, fsModifiers, vk);
+            Console.WriteLine($"Hotkey registration: Key={key}, Modifiers={fsModifiers}, Success={success}");
         }
 
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
