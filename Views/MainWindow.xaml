@@ -74,8 +74,12 @@
         <GroupBox Grid.Row="1" Grid.Column="0" Header="Mouse Settings" Visibility="{Binding IsMouseMode, Converter={StaticResource BooleanToVisibilityConverter}}">
             <StackPanel>
                 <StackPanel Orientation="Horizontal">
-                    <RadioButton Content="Left" IsChecked="{Binding MouseButton, Converter={StaticResource StringToBooleanConverter}, ConverterParameter=Left}" Command="{Binding Path=MouseButton, Converter={StaticResource StringToCommandConverter}, ConverterParameter=Left}"/>
-                    <RadioButton Content="Right" IsChecked="{Binding MouseButton, Converter={StaticResource StringToBooleanConverter}, ConverterParameter=Right}" Command="{Binding Path=MouseButton, Converter={StaticResource StringToCommandConverter}, ConverterParameter=Right}"/>
+                    <Label Content="Mouse Button:"/>
+                    <ComboBox ItemsSource="{Binding MouseButtonOptions}" SelectedItem="{Binding MouseButton}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <Label Content="Click Type:"/>
+                    <ComboBox ItemsSource="{Binding ClickTypeOptions}" SelectedItem="{Binding ClickType}"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal">
                     <RadioButton Content="Click" IsChecked="{Binding MouseMode, Converter={StaticResource StringToBooleanConverter}, ConverterParameter=Click}" Command="{Binding Path=MouseMode, Converter={StaticResource StringToCommandConverter}, ConverterParameter=Click}"/>
@@ -217,6 +221,7 @@
             <Label Content="{Binding StatusText}" Foreground="{Binding StatusColor}" BorderBrush="Black" BorderThickness="1" Padding="10,5"/>
             <Button Content="Reset to Default" Command="{Binding ResetSettingsCommand}"/>
             <Button Content="Options"/>
+            <CheckBox Content="Always on Top" IsChecked="{Binding IsTopmost, UpdateSourceTrigger=PropertyChanged}" Margin="5,2"/>
         </StackPanel>
     </Grid>
 </Window>

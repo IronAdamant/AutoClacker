@@ -25,6 +25,8 @@ namespace AutoClacker.ViewModels
         private bool isSettingToggleKey;
         private bool isSettingKeyboardKey;
         private List<string> runningApplications;
+        private List<string> mouseButtonOptions;
+        private List<string> clickTypeOptions;
 
         // Timers for decrementing displays
         private readonly DispatcherTimer clickDurationTimer;
@@ -46,6 +48,7 @@ namespace AutoClacker.ViewModels
                 TargetApplication = Properties.Settings.Default.TargetApplication,
                 ActionType = Properties.Settings.Default.ActionType,
                 MouseButton = Properties.Settings.Default.MouseButton,
+                ClickType = Properties.Settings.Default.ClickType,
                 MouseMode = Properties.Settings.Default.MouseMode,
                 ClickMode = Properties.Settings.Default.ClickMode,
                 ClickDuration = Properties.Settings.Default.ClickDuration,
@@ -59,12 +62,15 @@ namespace AutoClacker.ViewModels
                 Interval = Properties.Settings.Default.Interval,
                 Mode = Properties.Settings.Default.Mode,
                 TotalDuration = Properties.Settings.Default.TotalDuration,
-                Theme = Properties.Settings.Default.Theme
+                Theme = Properties.Settings.Default.Theme,
+                IsTopmost = Properties.Settings.Default.IsTopmost
             };
 
             automationController = new AutomationController(this);
             applicationDetector = new ApplicationDetector();
             RunningApplications = applicationDetector.GetRunningApplications();
+            MouseButtonOptions = new List<string> { "Left", "Right", "Middle" };
+            ClickTypeOptions = new List<string> { "Single", "Double" };
             ToggleAutomationCommand = new RelayCommand(ToggleAutomation);
             SetTriggerKeyCommand = new RelayCommand(SetTriggerKey);
             SetKeyCommand = new RelayCommand(SetKey);
@@ -82,6 +88,7 @@ namespace AutoClacker.ViewModels
             holdDurationTimer.Tick += (s, e) => UpdateRemainingHoldDuration();
 
             OnPropertyChanged(nameof(TriggerKeyDisplay));
+            OnPropertyChanged(nameof(KeyboardKeyDisplay));
             OnPropertyChanged(nameof(IsMouseMode));
             OnPropertyChanged(nameof(IsKeyboardMode));
             OnPropertyChanged(nameof(IsClickModeVisible));
@@ -104,6 +111,7 @@ namespace AutoClacker.ViewModels
         {
             hotkeyManager = new HotkeyManager(window, this);
             hotkeyManager.RegisterTriggerHotkey(settings.TriggerKey, settings.TriggerKeyModifiers);
+            window.Topmost = settings.IsTopmost; // Set initial Topmost state
         }
 
         // Remaining time properties
@@ -238,6 +246,30 @@ namespace AutoClacker.ViewModels
             }
         }
 
+        public List<string> MouseButtonOptions
+        {
+            get => mouseButtonOptions;
+            private set { mouseButtonOptions = value; OnPropertyChanged(nameof(MouseButtonOptions)); }
+        }
+
+        public string ClickType
+        {
+            get => settings.ClickType;
+            set
+            {
+                settings.ClickType = value;
+                OnPropertyChanged(nameof(ClickType));
+                Properties.Settings.Default.ClickType = value;
+                Properties.Settings.Default.Save();
+            }
+        }
+
+        public List<string> ClickTypeOptions
+        {
+            get => clickTypeOptions;
+            private set { clickTypeOptions = value; OnPropertyChanged(nameof(ClickTypeOptions)); }
+        }
+
         public string MouseMode
         {
             get => settings.MouseMode;
@@ -368,7 +400,7 @@ namespace AutoClacker.ViewModels
             }
         }
 
-        public string KeyboardKeyDisplay => KeyboardKey == Key.None ? "None" : KeyboardKey.ToString();
+        public string KeyboardKeyDisplay => settings.KeyboardKey.ToString();
 
         public string KeyboardMode
         {
@@ -439,7 +471,7 @@ namespace AutoClacker.ViewModels
             }
         }
 
-        public string TriggerKeyDisplay => TriggerKey == Key.F5 ? "F5" : "Not Set";
+        public string TriggerKeyDisplay => settings.TriggerKey.ToString();
 
         public ModifierKeys TriggerKeyModifiers
         {
@@ -548,6 +580,22 @@ namespace AutoClacker.ViewModels
                 OnPropertyChanged(nameof(Theme));
                 Properties.Settings.Default.Theme = value;
                 Properties.Settings.Default.Save();
+            }
+        }
+
+        public bool IsTopmost
+        {
+            get => settings.IsTopmost;
+            set
+            {
+                settings.IsTopmost = value;
+                OnPropertyChanged(nameof(IsTopmost));
+                Properties.Settings.Default.IsTopmost = value;
+                Properties.Settings.Default.Save();
+                if (Application.Current.MainWindow != null)
+                {
+                    Application.Current.MainWindow.Topmost = value;
+                }
             }
         }
 
@@ -725,6 +773,7 @@ namespace AutoClacker.ViewModels
             settings.TargetApplication = Properties.Settings.Default.TargetApplication;
             settings.ActionType = Properties.Settings.Default.ActionType;
             settings.MouseButton = Properties.Settings.Default.MouseButton;
+            settings.ClickType = Properties.Settings.Default.ClickType;
             settings.MouseMode = Properties.Settings.Default.MouseMode;
             settings.ClickMode = Properties.Settings.Default.ClickMode;
             settings.ClickDuration = Properties.Settings.Default.ClickDuration;
@@ -739,11 +788,13 @@ namespace AutoClacker.ViewModels
             settings.Mode = Properties.Settings.Default.Mode;
             settings.TotalDuration = Properties.Settings.Default.TotalDuration;
             settings.Theme = Properties.Settings.Default.Theme;
+            settings.IsTopmost = Properties.Settings.Default.IsTopmost;
 
             OnPropertyChanged(nameof(ClickScope));
             OnPropertyChanged(nameof(TargetApplication));
             OnPropertyChanged(nameof(ActionType));
             OnPropertyChanged(nameof(MouseButton));
+            OnPropertyChanged(nameof(ClickType));
             OnPropertyChanged(nameof(MouseMode));
             OnPropertyChanged(nameof(ClickMode));
             OnPropertyChanged(nameof(ClickDurationMinutes));
@@ -770,6 +821,7 @@ namespace AutoClacker.ViewModels
             OnPropertyChanged(nameof(TotalDurationSeconds));
             OnPropertyChanged(nameof(TotalDurationMilliseconds));
             OnPropertyChanged(nameof(Theme));
+            OnPropertyChanged(nameof(IsTopmost));
             OnPropertyChanged(nameof(IsMouseMode));
             OnPropertyChanged(nameof(IsKeyboardMode));
             OnPropertyChanged(nameof(IsClickModeVisible));

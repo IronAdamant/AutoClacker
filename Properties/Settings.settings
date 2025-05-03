@@ -14,6 +14,9 @@
     <Setting Name="MouseButton" Type="System.String" Scope="User">
       <Value Profile="(Default)">Left</Value>
     </Setting>
+    <Setting Name="ClickType" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Single</Value>
+    </Setting>
     <Setting Name="MouseMode" Type="System.String" Scope="User">
       <Value Profile="(Default)">Click</Value>
     </Setting>
@@ -45,7 +48,7 @@
       <Value Profile="(Default)">0</Value>
     </Setting>
     <Setting Name="Interval" Type="System.TimeSpan" Scope="User">
-      <Value Profile="(Default)">00:00:01</Value>
+      <Value Profile="(Default)">00:00:02</Value>
     </Setting>
     <Setting Name="Mode" Type="System.String" Scope="User">
       <Value Profile="(Default)">Constant</Value>
@@ -55,6 +58,9 @@
     </Setting>
     <Setting Name="Theme" Type="System.String" Scope="User">
       <Value Profile="(Default)">Light</Value>
+    </Setting>
+    <Setting Name="IsTopmost" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
     </Setting>
   </Settings>
 </SettingsFile>
