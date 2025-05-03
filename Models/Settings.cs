@@ -12,20 +12,22 @@ namespace AutoClacker.Models
         private string targetApplication = "";
         private string actionType = "Mouse";
         private string mouseButton = "Left";
+        private string clickType = "Single";
         private string mouseMode = "Click";
-        private string clickMode = "Constant"; // New: Constant or Duration
-        private TimeSpan clickDuration = TimeSpan.Zero; // New: Duration for Click mode
+        private string clickMode = "Constant";
+        private TimeSpan clickDuration = TimeSpan.Zero;
         private TimeSpan mouseHoldDuration = TimeSpan.FromSeconds(1);
-        private string holdMode = "HoldDuration"; // New: HoldDuration or ConstantHold
-        private int keyboardKey = 0; // Key.None
+        private string holdMode = "HoldDuration";
+        private int keyboardKey = 0;
         private string keyboardMode = "Press";
         private TimeSpan keyboardHoldDuration = TimeSpan.Zero;
-        private int triggerKey = 116; // Key.F5
-        private int triggerKeyModifiers = 0; // ModifierKeys.None
+        private int triggerKey = 116;
+        private int triggerKeyModifiers = 0;
         private TimeSpan interval = TimeSpan.FromSeconds(1);
         private string mode = "Constant";
         private TimeSpan totalDuration = TimeSpan.Zero;
         private string theme = "Light";
+        private bool isTopmost = false;
 
         public string ClickScope
         {
@@ -49,6 +51,12 @@ namespace AutoClacker.Models
         {
             get => mouseButton;
             set { mouseButton = value; OnPropertyChanged(nameof(MouseButton)); }
+        }
+
+        public string ClickType
+        {
+            get => clickType;
+            set { clickType = value; OnPropertyChanged(nameof(ClickType)); }
         }
 
         public string MouseMode
@@ -133,6 +141,12 @@ namespace AutoClacker.Models
         {
             get => theme;
             set { theme = value; OnPropertyChanged(nameof(Theme)); }
+        }
+
+        public bool IsTopmost
+        {
+            get => isTopmost;
+            set { isTopmost = value; OnPropertyChanged(nameof(IsTopmost)); }
         }
 
         protected void OnPropertyChanged(string propertyName)

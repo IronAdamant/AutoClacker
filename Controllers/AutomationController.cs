@@ -15,21 +15,63 @@ namespace AutoClacker.Controllers
         private CancellationTokenSource cts;
         private readonly ApplicationDetector detector = new ApplicationDetector();
 
-        [DllImport("user32.dll")]
-        private static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+        // SendInput related structs and constants
+        [StructLayout(LayoutKind.Sequential)]
+        private struct INPUT
+        {
+            public uint type;
+            public InputUnion u;
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
+        private struct InputUnion
+        {
+            [FieldOffset(0)]
+            public MOUSEINPUT mi;
+            [FieldOffset(0)]
+            public KEYBDINPUT ki;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MOUSEINPUT
+        {
+            public int dx;
+            public int dy;
+            public uint mouseData;
+            public uint dwFlags;
+            public uint time;
+            public IntPtr dwExtraInfo;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct KEYBDINPUT
+        {
+            public ushort wVk;
+            public ushort wScan;
+            public uint dwFlags;
+            public uint time;
+            public IntPtr dwExtraInfo;
+        }
+
+        private const uint INPUT_MOUSE = 0;
+        private const uint INPUT_KEYBOARD = 1;
+        private const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
+        private const uint MOUSEEVENTF_LEFTUP = 0x0004;
+        private const uint MOUSEEVENTF_RIGHTDOWN = 0x0008;
+        private const uint MOUSEEVENTF_RIGHTUP = 0x0010;
+        private const uint MOUSEEVENTF_MIDDLEDOWN = 0x0020;
+        private const uint MOUSEEVENTF_MIDDLEUP = 0x0040;
+        private const uint KEYEVENTF_KEYDOWN = 0x0000;
+        private const uint KEYEVENTF_KEYUP = 0x0002;
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
 
         [DllImport("user32.dll")]
         private static extern bool GetClientRect(IntPtr hWnd, out RECT lpRect);
 
         [DllImport("user32.dll")]
         private static extern bool IsIconic(IntPtr hWnd);
-
-        private const uint WM_LBUTTONDOWN = 0x0201;
-        private const uint WM_LBUTTONUP = 0x0202;
-        private const uint WM_RBUTTONDOWN = 0x0204;
-        private const uint WM_RBUTTONUP = 0x0205;
-        private const uint WM_KEYDOWN = 0x0100;
-        private const uint WM_KEYUP = 0x0101;
 
         private struct RECT { public int Left, Top, Right, Bottom; }
 
@@ -54,6 +96,7 @@ namespace AutoClacker.Controllers
                     TargetApplication = Properties.Settings.Default.TargetApplication,
                     ActionType = Properties.Settings.Default.ActionType,
                     MouseButton = Properties.Settings.Default.MouseButton,
+                    ClickType = Properties.Settings.Default.ClickType,
                     MouseMode = Properties.Settings.Default.MouseMode,
                     ClickMode = Properties.Settings.Default.ClickMode,
                     ClickDuration = Properties.Settings.Default.ClickDuration,
@@ -67,7 +110,8 @@ namespace AutoClacker.Controllers
                     Interval = Properties.Settings.Default.Interval,
                     Mode = Properties.Settings.Default.Mode,
                     TotalDuration = Properties.Settings.Default.TotalDuration,
-                    Theme = Properties.Settings.Default.Theme
+                    Theme = Properties.Settings.Default.Theme,
+                    IsTopmost = Properties.Settings.Default.IsTopmost
                 };
 
                 if (settings.ClickScope == "Restricted" && !ValidateTargetApplication(settings))
@@ -87,7 +131,8 @@ namespace AutoClacker.Controllers
                     return;
                 }
 
-                TimeSpan effectiveInterval = settings.Interval.TotalMilliseconds < 1 ? TimeSpan.FromMilliseconds(1) : settings.Interval;
+                // Increase minimum interval to 100ms to prevent overly rapid input
+                TimeSpan effectiveInterval = settings.Interval.TotalMilliseconds < 100 ? TimeSpan.FromMilliseconds(100) : settings.Interval;
 
                 var stopwatch = System.Diagnostics.Stopwatch.StartNew();
                 bool mouseButtonHeld = false;
@@ -106,8 +151,7 @@ namespace AutoClacker.Controllers
                         {
                             if (!mouseButtonHeld)
                             {
-                                uint down = settings.MouseButton == "Left" ? 0x0002U : 0x0008U;
-                                MouseEvent(down);
+                                MouseEventDown(settings);
                                 mouseButtonHeld = true;
                             }
                         }
@@ -115,8 +159,7 @@ namespace AutoClacker.Controllers
                         {
                             if (mouseButtonHeld)
                             {
-                                uint up = settings.MouseButton == "Left" ? 0x0004U : 0x0010U;
-                                MouseEvent(up);
+                                MouseEventUp(settings);
                                 mouseButtonHeld = false;
                             }
                             await PerformGlobalAction(settings);
@@ -142,8 +185,7 @@ namespace AutoClacker.Controllers
 
                 if (mouseButtonHeld)
                 {
-                    uint up = settings.MouseButton == "Left" ? 0x0004U : 0x0010U;
-                    MouseEvent(up);
+                    MouseEventUp(settings);
                 }
 
                 StopAutomation("Automation completed");
@@ -177,19 +219,25 @@ namespace AutoClacker.Controllers
         {
             if (settings.ActionType == "Mouse")
             {
-                uint down = settings.MouseButton == "Left" ? 0x0002U : 0x0008U;
-                uint up = settings.MouseButton == "Left" ? 0x0004U : 0x0010U;
                 if (settings.MouseMode == "Click")
                 {
-                    MouseEvent(down);
-                    MouseEvent(up);
+                    MouseEventDown(settings);
+                    await Task.Delay(10); // Small delay to ensure click is registered
+                    MouseEventUp(settings);
+                    if (settings.ClickType == "Double")
+                    {
+                        await Task.Delay(50); // Delay between clicks for double click
+                        MouseEventDown(settings);
+                        await Task.Delay(10);
+                        MouseEventUp(settings);
+                    }
                 }
                 else if (settings.HoldMode == "HoldDuration")
                 {
                     Console.WriteLine($"Holding mouse for {settings.MouseHoldDuration.TotalMilliseconds} ms, Interval: {settings.Interval.TotalMilliseconds} ms");
-                    MouseEvent(down);
+                    MouseEventDown(settings);
                     await Task.Delay(settings.MouseHoldDuration);
-                    MouseEvent(up);
+                    MouseEventUp(settings);
                 }
             }
             else
@@ -197,6 +245,7 @@ namespace AutoClacker.Controllers
                 if (settings.KeyboardMode == "Press")
                 {
                     KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 0);
+                    await Task.Delay(50); // Increased delay to prevent buffering issues
                     KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 2);
                 }
                 else
@@ -218,54 +267,117 @@ namespace AutoClacker.Controllers
                 return;
             }
 
-            IntPtr hWnd = process.MainWindowHandle;
+            GetClientRect(process.MainWindowHandle, out RECT rect);
+            int x = (rect.Right - rect.Left) / 2;
+            int y = (rect.Bottom - rect.Top) / 2;
+
             if (settings.ActionType == "Mouse")
             {
-                GetClientRect(hWnd, out RECT rect);
-                int x = (rect.Right - rect.Left) / 2;
-                int y = (rect.Bottom - rect.Top) / 2;
-                IntPtr lParam = (IntPtr)((y << 16) | (x & 0xFFFF));
-                uint down = settings.MouseButton == "Left" ? WM_LBUTTONDOWN : WM_RBUTTONDOWN;
-                uint up = settings.MouseButton == "Left" ? WM_LBUTTONUP : WM_RBUTTONUP;
-
+                // For restricted mode, we need to move the cursor to the target position
+                // Set cursor position (not implemented here, as SendInput can directly simulate clicks)
                 if (settings.MouseMode == "Click")
                 {
-                    PostMessage(hWnd, down, IntPtr.Zero, lParam);
-                    PostMessage(hWnd, up, IntPtr.Zero, lParam);
+                    MouseEventDown(settings);
+                    await Task.Delay(10);
+                    MouseEventUp(settings);
+                    if (settings.ClickType == "Double")
+                    {
+                        await Task.Delay(50);
+                        MouseEventDown(settings);
+                        await Task.Delay(10);
+                        MouseEventUp(settings);
+                    }
                 }
                 else if (settings.HoldMode == "HoldDuration")
                 {
                     Console.WriteLine($"Holding mouse (restricted) for {settings.MouseHoldDuration.TotalMilliseconds} ms, Interval: {settings.Interval.TotalMilliseconds} ms");
-                    PostMessage(hWnd, down, IntPtr.Zero, lParam);
+                    MouseEventDown(settings);
                     await Task.Delay(settings.MouseHoldDuration);
-                    PostMessage(hWnd, up, IntPtr.Zero, lParam);
+                    MouseEventUp(settings);
                 }
             }
             else
             {
-                IntPtr wParam = (IntPtr)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey);
+                // Keyboard input remains the same for restricted mode
                 if (settings.KeyboardMode == "Press")
                 {
-                    PostMessage(hWnd, WM_KEYDOWN, wParam, IntPtr.Zero);
-                    PostMessage(hWnd, WM_KEYUP, wParam, IntPtr.Zero);
+                    KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 0);
+                    await Task.Delay(50); // Increased delay to prevent buffering issues
+                    KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 2);
                 }
                 else
                 {
                     Console.WriteLine($"Holding keyboard (restricted) for {settings.KeyboardHoldDuration.TotalMilliseconds} ms, Interval: {settings.Interval.TotalMilliseconds} ms");
-                    PostMessage(hWnd, WM_KEYDOWN, wParam, IntPtr.Zero);
+                    KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 0);
                     await Task.Delay(settings.KeyboardHoldDuration);
-                    PostMessage(hWnd, WM_KEYUP, wParam, IntPtr.Zero);
+                    KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 2);
                 }
             }
         }
 
-        [DllImport("user32.dll")]
-        private static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, IntPtr dwExtraInfo);
+        private void MouseEventDown(Settings settings)
+        {
+            INPUT[] inputs = new INPUT[1];
+            inputs[0].type = INPUT_MOUSE;
+            inputs[0].u.mi.dx = 0;
+            inputs[0].u.mi.dy = 0;
+            inputs[0].u.mi.mouseData = 0;
+            inputs[0].u.mi.time = 0;
+            inputs[0].u.mi.dwExtraInfo = IntPtr.Zero;
 
-        [DllImport("user32.dll")]
-        private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, IntPtr dwExtraInfo);
+            switch (settings.MouseButton)
+            {
+                case "Left":
+                    inputs[0].u.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
+                    break;
+                case "Right":
+                    inputs[0].u.mi.dwFlags = MOUSEEVENTF_RIGHTDOWN;
+                    break;
+                case "Middle":
+                    inputs[0].u.mi.dwFlags = MOUSEEVENTF_MIDDLEDOWN;
+                    break;
+            }
 
-        private void MouseEvent(uint flags) => mouse_event(flags, 0, 0, 0, IntPtr.Zero);
-        private void KeybdEvent(byte key, uint flags) => keybd_event(key, 0, flags, IntPtr.Zero);
+            SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
+        }
+
+        private void MouseEventUp(Settings settings)
+        {
+            INPUT[] inputs = new INPUT[1];
+            inputs[0].type = INPUT_MOUSE;
+            inputs[0].u.mi.dx = 0;
+            inputs[0].u.mi.dy = 0;
+            inputs[0].u.mi.mouseData = 0;
+            inputs[0].u.mi.time = 0;
+            inputs[0].u.mi.dwExtraInfo = IntPtr.Zero;
+
+            switch (settings.MouseButton)
+            {
+                case "Left":
+                    inputs[0].u.mi.dwFlags = MOUSEEVENTF_LEFTUP;
+                    break;
+                case "Right":
+                    inputs[0].u.mi.dwFlags = MOUSEEVENTF_RIGHTUP;
+                    break;
+                case "Middle":
+                    inputs[0].u.mi.dwFlags = MOUSEEVENTF_MIDDLEUP;
+                    break;
+            }
+
+            SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
+        }
+
+        private void KeybdEvent(byte key, uint flags)
+        {
+            INPUT[] inputs = new INPUT[1];
+            inputs[0].type = INPUT_KEYBOARD;
+            inputs[0].u.ki.wVk = key;
+            inputs[0].u.ki.wScan = 0;
+            inputs[0].u.ki.dwFlags = flags;
+            inputs[0].u.ki.time = 0;
+            inputs[0].u.ki.dwExtraInfo = IntPtr.Zero;
+
+            SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
+        }
     }
 }
