@@ -15,7 +15,7 @@ namespace AutoClacker.ViewModels
     public class MainViewModel : INotifyPropertyChanged
     {
         private readonly Settings settings;
-        private readonly AutomationController automationController;
+        private AutomationController automationController;
         private readonly ApplicationDetector applicationDetector;
         private HotkeyManager hotkeyManager;
         private bool isRunning;
@@ -27,16 +27,31 @@ namespace AutoClacker.ViewModels
         private List<string> runningApplications;
         private List<string> mouseButtonOptions;
         private List<string> clickTypeOptions;
+        private Window window;
+        private Task currentAutomationTask;
 
-        // Timers for decrementing displays
-        private readonly DispatcherTimer clickDurationTimer;
-        private readonly DispatcherTimer pressTimer;
-        private readonly DispatcherTimer holdDurationTimer;
+        // Single timer for UI updates (100ms interval)
+        private readonly DispatcherTimer uiUpdateTimer;
 
-        // Remaining times
+        // Remaining times (updated by AutomationController)
         private TimeSpan remainingClickDuration;
         private TimeSpan remainingPressTimer;
         private TimeSpan remainingHoldDuration;
+        private TimeSpan remainingMouseHoldDuration;
+
+        // Remaining time properties for display (in numbers)
+        private int remainingClickDurationMin;
+        private int remainingClickDurationSec;
+        private int remainingClickDurationMs;
+        private int remainingPressTimerMin;
+        private int remainingPressTimerSec;
+        private int remainingPressTimerMs;
+        private int remainingHoldDurationMin;
+        private int remainingHoldDurationSec;
+        private int remainingHoldDurationMs;
+        private int remainingMouseHoldDurationMin;
+        private int remainingMouseHoldDurationSec;
+        private int remainingMouseHoldDurationMs;
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -44,25 +59,27 @@ namespace AutoClacker.ViewModels
         {
             settings = new Settings
             {
-                ClickScope = Properties.Settings.Default.ClickScope,
+                ClickScope = Properties.Settings.Default.ClickScope ?? "Global",
                 TargetApplication = Properties.Settings.Default.TargetApplication,
-                ActionType = Properties.Settings.Default.ActionType,
-                MouseButton = Properties.Settings.Default.MouseButton,
-                ClickType = Properties.Settings.Default.ClickType,
-                MouseMode = Properties.Settings.Default.MouseMode,
-                ClickMode = Properties.Settings.Default.ClickMode,
+                ActionType = Properties.Settings.Default.ActionType ?? "Mouse",
+                MouseButton = Properties.Settings.Default.MouseButton ?? "Left",
+                ClickType = Properties.Settings.Default.ClickType ?? "Single",
+                MouseMode = Properties.Settings.Default.MouseMode ?? "Click",
+                ClickMode = Properties.Settings.Default.ClickMode ?? "Constant",
                 ClickDuration = Properties.Settings.Default.ClickDuration,
                 MouseHoldDuration = Properties.Settings.Default.MouseHoldDuration,
-                HoldMode = Properties.Settings.Default.HoldMode,
+                HoldMode = Properties.Settings.Default.HoldMode ?? "ConstantHold",
+                MousePhysicalHoldMode = Properties.Settings.Default.MousePhysicalHoldMode,
                 KeyboardKey = (Key)Properties.Settings.Default.KeyboardKey,
-                KeyboardMode = Properties.Settings.Default.KeyboardMode,
+                KeyboardMode = Properties.Settings.Default.KeyboardMode ?? "Press",
                 KeyboardHoldDuration = Properties.Settings.Default.KeyboardHoldDuration,
+                KeyboardPhysicalHoldMode = Properties.Settings.Default.KeyboardPhysicalHoldMode,
                 TriggerKey = (Key)Properties.Settings.Default.TriggerKey,
                 TriggerKeyModifiers = (ModifierKeys)Properties.Settings.Default.TriggerKeyModifiers,
                 Interval = Properties.Settings.Default.Interval,
-                Mode = Properties.Settings.Default.Mode,
+                Mode = Properties.Settings.Default.Mode ?? "Constant",
                 TotalDuration = Properties.Settings.Default.TotalDuration,
-                Theme = Properties.Settings.Default.Theme,
+                Theme = Properties.Settings.Default.Theme ?? "Light",
                 IsTopmost = Properties.Settings.Default.IsTopmost
             };
 
@@ -71,21 +88,17 @@ namespace AutoClacker.ViewModels
             RunningApplications = applicationDetector.GetRunningApplications();
             MouseButtonOptions = new List<string> { "Left", "Right", "Middle" };
             ClickTypeOptions = new List<string> { "Single", "Double" };
-            ToggleAutomationCommand = new RelayCommand(ToggleAutomation);
-            SetTriggerKeyCommand = new RelayCommand(SetTriggerKey);
-            SetKeyCommand = new RelayCommand(SetKey);
+            ToggleAutomationCommand = new RelayCommand(async o => await ToggleAutomation(o));
+            SetTriggerKeyCommand = new RelayCommand(async o => await SetTriggerKey(o));
+            SetKeyCommand = new RelayCommand(async o => await SetKey(o));
             ResetSettingsCommand = new RelayCommand(ResetSettings);
             SetConstantCommand = new RelayCommand(SetConstant);
             SetHoldDurationCommand = new RelayCommand(SetHoldDuration);
             RefreshApplicationsCommand = new RelayCommand(RefreshApplications);
 
-            // Initialize timers
-            clickDurationTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
-            clickDurationTimer.Tick += (s, e) => UpdateRemainingClickDuration();
-            pressTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
-            pressTimer.Tick += (s, e) => UpdateRemainingPressTimer();
-            holdDurationTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
-            holdDurationTimer.Tick += (s, e) => UpdateRemainingHoldDuration();
+            // Initialize UI update timer with 100ms interval
+            uiUpdateTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
+            uiUpdateTimer.Tick += (s, e) => UpdateRemainingTimesDisplay();
 
             OnPropertyChanged(nameof(TriggerKeyDisplay));
             OnPropertyChanged(nameof(KeyboardKeyDisplay));
@@ -105,95 +118,198 @@ namespace AutoClacker.ViewModels
 
         public MainViewModel(Window window) : this()
         {
+            this.window = window;
         }
 
         public void InitializeHotkeyManager(Window window)
         {
+            this.window = window;
             hotkeyManager = new HotkeyManager(window, this);
             hotkeyManager.RegisterTriggerHotkey(settings.TriggerKey, settings.TriggerKeyModifiers);
             window.Topmost = settings.IsTopmost; // Set initial Topmost state
         }
 
-        // Remaining time properties
-        public int RemainingClickDurationMinutes => remainingClickDuration.Minutes;
-        public int RemainingClickDurationSeconds => remainingClickDuration.Seconds;
-        public int RemainingClickDurationMilliseconds => remainingClickDuration.Milliseconds;
-
-        public int RemainingPressTimerMinutes => remainingPressTimer.Minutes;
-        public int RemainingPressTimerSeconds => remainingPressTimer.Seconds;
-        public int RemainingPressTimerMilliseconds => remainingPressTimer.Milliseconds;
-
-        public int RemainingHoldDurationMinutes => remainingHoldDuration.Minutes;
-        public int RemainingHoldDurationSeconds => remainingHoldDuration.Seconds;
-        public int RemainingHoldDurationMilliseconds => remainingHoldDuration.Milliseconds;
-
-        private void UpdateRemainingClickDuration()
+        // Methods to update remaining times (called by AutomationController)
+        public void UpdateRemainingClickDuration(TimeSpan remaining)
         {
-            remainingClickDuration = remainingClickDuration.Subtract(TimeSpan.FromMilliseconds(100));
-            if (remainingClickDuration <= TimeSpan.Zero)
+            remainingClickDuration = remaining;
+            if (remaining <= TimeSpan.Zero)
             {
-                clickDurationTimer.Stop();
                 remainingClickDuration = TimeSpan.Zero;
                 automationController.StopAutomation("Click Duration completed");
             }
-            OnPropertyChanged(nameof(RemainingClickDurationMinutes));
-            OnPropertyChanged(nameof(RemainingClickDurationSeconds));
-            OnPropertyChanged(nameof(RemainingClickDurationMilliseconds));
         }
 
-        private void UpdateRemainingPressTimer()
+        public void UpdateRemainingPressTimer(TimeSpan remaining)
         {
-            remainingPressTimer = remainingPressTimer.Subtract(TimeSpan.FromMilliseconds(100));
-            if (remainingPressTimer <= TimeSpan.Zero)
+            remainingPressTimer = remaining;
+            if (remaining <= TimeSpan.Zero)
             {
-                pressTimer.Stop();
                 remainingPressTimer = TimeSpan.Zero;
                 automationController.StopAutomation("Press Timer completed");
             }
-            OnPropertyChanged(nameof(RemainingPressTimerMinutes));
-            OnPropertyChanged(nameof(RemainingPressTimerSeconds));
-            OnPropertyChanged(nameof(RemainingPressTimerMilliseconds));
         }
 
-        private void UpdateRemainingHoldDuration()
+        public void UpdateRemainingHoldDuration(TimeSpan remaining)
         {
-            remainingHoldDuration = remainingHoldDuration.Subtract(TimeSpan.FromMilliseconds(100));
-            if (remainingHoldDuration <= TimeSpan.Zero)
+            remainingHoldDuration = remaining;
+            if (remaining <= TimeSpan.Zero)
             {
-                holdDurationTimer.Stop();
                 remainingHoldDuration = TimeSpan.Zero;
                 automationController.StopAutomation("Hold Duration completed");
             }
-            OnPropertyChanged(nameof(RemainingHoldDurationMinutes));
-            OnPropertyChanged(nameof(RemainingHoldDurationSeconds));
-            OnPropertyChanged(nameof(RemainingHoldDurationMilliseconds));
+        }
+
+        public void UpdateRemainingMouseHoldDuration(TimeSpan remaining)
+        {
+            remainingMouseHoldDuration = remaining;
+            if (remaining <= TimeSpan.Zero)
+            {
+                remainingMouseHoldDuration = TimeSpan.Zero;
+                automationController.StopAutomation("Mouse Hold Duration completed");
+            }
+        }
+
+        // UI update method (called every 100ms)
+        private void UpdateRemainingTimesDisplay()
+        {
+            RemainingClickDurationMin = remainingClickDuration.Minutes;
+            RemainingClickDurationSec = remainingClickDuration.Seconds;
+            RemainingClickDurationMs = remainingClickDuration.Milliseconds;
+
+            RemainingPressTimerMin = remainingPressTimer.Minutes;
+            RemainingPressTimerSec = remainingPressTimer.Seconds;
+            RemainingPressTimerMs = remainingPressTimer.Milliseconds;
+
+            RemainingHoldDurationMin = remainingHoldDuration.Minutes;
+            RemainingHoldDurationSec = remainingHoldDuration.Seconds;
+            RemainingHoldDurationMs = remainingHoldDuration.Milliseconds;
+
+            RemainingMouseHoldDurationMin = remainingMouseHoldDuration.Minutes;
+            RemainingMouseHoldDurationSec = remainingMouseHoldDuration.Seconds;
+            RemainingMouseHoldDurationMs = remainingMouseHoldDuration.Milliseconds;
+        }
+
+        // Remaining time properties for display
+        public int RemainingClickDurationMin
+        {
+            get => remainingClickDurationMin;
+            private set { remainingClickDurationMin = value; OnPropertyChanged(nameof(RemainingClickDurationMin)); }
+        }
+
+        public int RemainingClickDurationSec
+        {
+            get => remainingClickDurationSec;
+            private set { remainingClickDurationSec = value; OnPropertyChanged(nameof(RemainingClickDurationSec)); }
+        }
+
+        public int RemainingClickDurationMs
+        {
+            get => remainingClickDurationMs;
+            private set { remainingClickDurationMs = value; OnPropertyChanged(nameof(RemainingClickDurationMs)); }
+        }
+
+        public int RemainingPressTimerMin
+        {
+            get => remainingPressTimerMin;
+            private set { remainingPressTimerMin = value; OnPropertyChanged(nameof(RemainingPressTimerMin)); }
+        }
+
+        public int RemainingPressTimerSec
+        {
+            get => remainingPressTimerSec;
+            private set { remainingPressTimerSec = value; OnPropertyChanged(nameof(RemainingPressTimerSec)); }
+        }
+
+        public int RemainingPressTimerMs
+        {
+            get => remainingPressTimerMs;
+            private set { remainingPressTimerMs = value; OnPropertyChanged(nameof(RemainingPressTimerMs)); }
+        }
+
+        public int RemainingHoldDurationMin
+        {
+            get => remainingHoldDurationMin;
+            private set { remainingHoldDurationMin = value; OnPropertyChanged(nameof(RemainingHoldDurationMin)); }
+        }
+
+        public int RemainingHoldDurationSec
+        {
+            get => remainingHoldDurationSec;
+            private set { remainingHoldDurationSec = value; OnPropertyChanged(nameof(RemainingHoldDurationSec)); }
+        }
+
+        public int RemainingHoldDurationMs
+        {
+            get => remainingHoldDurationMs;
+            private set { remainingHoldDurationMs = value; OnPropertyChanged(nameof(RemainingHoldDurationMs)); }
+        }
+
+        public int RemainingMouseHoldDurationMin
+        {
+            get => remainingMouseHoldDurationMin;
+            private set { remainingMouseHoldDurationMin = value; OnPropertyChanged(nameof(RemainingMouseHoldDurationMin)); }
+        }
+
+        public int RemainingMouseHoldDurationSec
+        {
+            get => remainingMouseHoldDurationSec;
+            private set { remainingMouseHoldDurationSec = value; OnPropertyChanged(nameof(RemainingMouseHoldDurationSec)); }
+        }
+
+        public int RemainingMouseHoldDurationMs
+        {
+            get => remainingMouseHoldDurationMs;
+            private set { remainingMouseHoldDurationMs = value; OnPropertyChanged(nameof(RemainingMouseHoldDurationMs)); }
         }
 
         public void StartTimers()
         {
+            // Initialize remaining times
             if (settings.ActionType == "Mouse" && settings.MouseMode == "Click" && settings.ClickMode == "Duration")
             {
                 remainingClickDuration = settings.ClickDuration;
-                clickDurationTimer.Start();
             }
             if (settings.ActionType == "Keyboard" && settings.KeyboardMode == "Press" && settings.Mode == "Timer")
             {
                 remainingPressTimer = settings.TotalDuration;
-                pressTimer.Start();
             }
             if (settings.ActionType == "Keyboard" && settings.KeyboardMode == "Hold" && settings.KeyboardHoldDuration != TimeSpan.Zero)
             {
                 remainingHoldDuration = settings.KeyboardHoldDuration;
-                holdDurationTimer.Start();
             }
+            if (settings.ActionType == "Mouse" && settings.MouseMode == "Hold" && settings.HoldMode == "HoldDuration")
+            {
+                remainingMouseHoldDuration = settings.MouseHoldDuration;
+            }
+
+            // Start the UI update timer
+            uiUpdateTimer.Start();
         }
 
         public void StopTimers()
         {
-            clickDurationTimer.Stop();
-            pressTimer.Stop();
-            holdDurationTimer.Stop();
+            uiUpdateTimer.Stop();
+            remainingClickDuration = TimeSpan.Zero;
+            remainingPressTimer = TimeSpan.Zero;
+            remainingHoldDuration = TimeSpan.Zero;
+            remainingMouseHoldDuration = TimeSpan.Zero;
+
+            RemainingClickDurationMin = 0;
+            RemainingClickDurationSec = 0;
+            RemainingClickDurationMs = 0;
+            RemainingPressTimerMin = 0;
+            RemainingPressTimerSec = 0;
+            RemainingPressTimerMs = 0;
+            RemainingHoldDurationMin = 0;
+            RemainingHoldDurationSec = 0;
+            RemainingHoldDurationMs = 0;
+            RemainingMouseHoldDurationMin = 0;
+            RemainingMouseHoldDurationSec = 0;
+            RemainingMouseHoldDurationMs = 0;
         }
+
+        public Settings CurrentSettings => settings; // Expose settings for AutomationController
 
         public string ClickScope
         {
@@ -342,7 +458,7 @@ namespace AutoClacker.ViewModels
             get => settings.MouseHoldDuration.Minutes;
             set
             {
-                settings.MouseHoldDuration = new TimeSpan(0, 0, value, settings.MouseHoldDuration.Seconds, settings.MouseHoldDuration.Milliseconds);
+                settings.MouseHoldDuration = new TimeSpan(0, 0, value, settings.MouseHoldDuration.Seconds, settings.ClickDuration.Milliseconds);
                 OnPropertyChanged(nameof(MouseHoldDurationMinutes));
                 Properties.Settings.Default.MouseHoldDuration = settings.MouseHoldDuration;
                 Properties.Settings.Default.Save();
@@ -384,6 +500,18 @@ namespace AutoClacker.ViewModels
                 Properties.Settings.Default.HoldMode = value;
                 Properties.Settings.Default.Save();
                 Console.WriteLine($"HoldMode changed to: {value}, IsHoldDurationMode: {IsHoldDurationMode}");
+            }
+        }
+
+        public bool MousePhysicalHoldMode
+        {
+            get => settings.MousePhysicalHoldMode;
+            set
+            {
+                settings.MousePhysicalHoldMode = value;
+                OnPropertyChanged(nameof(MousePhysicalHoldMode));
+                Properties.Settings.Default.MousePhysicalHoldMode = value;
+                Properties.Settings.Default.Save();
             }
         }
 
@@ -453,6 +581,18 @@ namespace AutoClacker.ViewModels
                 OnPropertyChanged(nameof(KeyboardHoldDurationMilliseconds));
                 OnPropertyChanged(nameof(IsKeyboardHoldDurationMode));
                 Properties.Settings.Default.KeyboardHoldDuration = settings.KeyboardHoldDuration;
+                Properties.Settings.Default.Save();
+            }
+        }
+
+        public bool KeyboardPhysicalHoldMode
+        {
+            get => settings.KeyboardPhysicalHoldMode;
+            set
+            {
+                settings.KeyboardPhysicalHoldMode = value;
+                OnPropertyChanged(nameof(KeyboardPhysicalHoldMode));
+                Properties.Settings.Default.KeyboardPhysicalHoldMode = value;
                 Properties.Settings.Default.Save();
             }
         }
@@ -643,100 +783,152 @@ namespace AutoClacker.ViewModels
         public RelayCommand SetHoldDurationCommand { get; }
         public RelayCommand RefreshApplicationsCommand { get; }
 
-        private void ToggleAutomation(object _)
+        private async Task ToggleAutomation(object _)
         {
+            Console.WriteLine($"ToggleAutomation called. IsRunning: {IsRunning}, CurrentAutomationTask: {(currentAutomationTask != null ? "Running" : "Null")}");
             if (IsRunning)
             {
                 automationController.StopAutomation();
+                if (currentAutomationTask != null)
+                {
+                    try
+                    {
+                        await currentAutomationTask; // Wait for the automation to fully stop
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error waiting for automation to stop: {ex.Message}");
+                    }
+                }
+                currentAutomationTask = null;
             }
             else
             {
-                var task = automationController.StartAutomation();
-                task.ContinueWith(t =>
+                if (currentAutomationTask != null)
                 {
-                    if (t.IsFaulted)
+                    Console.WriteLine("Previous automation task still running, waiting for it to stop.");
+                    try
                     {
-                        MessageBox.Show($"Automation failed: {t.Exception?.InnerException?.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Information);
+                        await currentAutomationTask;
                     }
-                }, TaskScheduler.FromCurrentSynchronizationContext());
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error waiting for previous automation to stop: {ex.Message}");
+                    }
+                }
+                currentAutomationTask = automationController.StartAutomation();
+                try
+                {
+                    await currentAutomationTask; // Wait for StartAutomation to complete
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Automation failed: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                finally
+                {
+                    currentAutomationTask = null; // Clear the task reference when done
+                }
             }
         }
 
-        private void SetTriggerKey(object _)
+        private async Task SetTriggerKey(object _)
         {
-            isSettingToggleKey = true;
-            isSettingKeyboardKey = false;
-            capturedKey = Key.None;
-            var dialog = new Window
+            try
             {
-                Title = "Set Toggle Key",
-                Content = new TextBlock
+                await Application.Current.Dispatcher.InvokeAsync(() =>
                 {
-                    Text = "Press a key to set the toggle key. Press Esc to cancel.",
-                    Margin = new Thickness(10)
-                },
-                Width = 300,
-                Height = 100,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                Owner = Application.Current.MainWindow
-            };
-            dialog.Show();
-            dialog.KeyDown += (s, e) =>
-            {
-                if (e.Key == Key.Escape)
-                {
+                    isSettingToggleKey = true;
+                    isSettingKeyboardKey = false;
                     capturedKey = Key.None;
-                    isSettingToggleKey = false;
-                    dialog.Close();
-                    return;
-                }
-                capturedKey = e.Key;
-                if (e.KeyboardDevice.IsKeyDown(Key.LeftCtrl) || e.KeyboardDevice.IsKeyDown(Key.RightCtrl))
-                    TriggerKeyModifiers |= ModifierKeys.Control;
-                if (e.KeyboardDevice.IsKeyDown(Key.LeftShift) || e.KeyboardDevice.IsKeyDown(Key.RightShift))
-                    TriggerKeyModifiers |= ModifierKeys.Shift;
-                if (e.KeyboardDevice.IsKeyDown(Key.LeftAlt) || e.KeyboardDevice.IsKeyDown(Key.RightAlt))
-                    TriggerKeyModifiers |= ModifierKeys.Alt;
-                TriggerKey = capturedKey;
-                isSettingToggleKey = false;
-                dialog.Close();
-            };
+                    var dialog = new Window
+                    {
+                        Title = "Set Toggle Key",
+                        Content = new TextBlock
+                        {
+                            Text = "Press a key to set the toggle key. Press Esc to cancel.",
+                            Margin = new Thickness(10)
+                        },
+                        Width = 300,
+                        Height = 100,
+                        WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                        Owner = Application.Current.MainWindow
+                    };
+                    dialog.Show();
+                    dialog.KeyDown += (s, e) =>
+                    {
+                        if (e.Key == Key.Escape)
+                        {
+                            capturedKey = Key.None;
+                            isSettingToggleKey = false;
+                            dialog.Close();
+                            return;
+                        }
+                        capturedKey = e.Key;
+                        if (e.KeyboardDevice.IsKeyDown(Key.LeftCtrl) || e.KeyboardDevice.IsKeyDown(Key.RightCtrl))
+                            TriggerKeyModifiers |= ModifierKeys.Control;
+                        if (e.KeyboardDevice.IsKeyDown(Key.LeftShift) || e.KeyboardDevice.IsKeyDown(Key.RightShift))
+                            TriggerKeyModifiers |= ModifierKeys.Shift;
+                        if (e.KeyboardDevice.IsKeyDown(Key.LeftAlt) || e.KeyboardDevice.IsKeyDown(Key.RightAlt))
+                            TriggerKeyModifiers |= ModifierKeys.Alt;
+                        TriggerKey = capturedKey;
+                        isSettingToggleKey = false;
+                        dialog.Close();
+                    };
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in SetTriggerKey: {ex.Message}");
+                MessageBox.Show($"Failed to set toggle key: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
-        private void SetKey(object _)
+        private async Task SetKey(object _)
         {
-            isSettingKeyboardKey = true;
-            isSettingToggleKey = false;
-            capturedKey = Key.None;
-            var dialog = new Window
+            try
             {
-                Title = "Set Key",
-                Content = new TextBlock
+                await Application.Current.Dispatcher.InvokeAsync(() =>
                 {
-                    Text = "Press a key to set the keyboard key. Press Esc to cancel.",
-                    Margin = new Thickness(10)
-                },
-                Width = 300,
-                Height = 100,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                Owner = Application.Current.MainWindow
-            };
-            dialog.Show();
-            dialog.KeyDown += (s, e) =>
-            {
-                if (e.Key == Key.Escape)
-                {
+                    isSettingKeyboardKey = true;
+                    isSettingToggleKey = false;
                     capturedKey = Key.None;
-                    isSettingKeyboardKey = false;
-                    dialog.Close();
-                    return;
-                }
-                capturedKey = e.Key;
-                KeyboardKey = capturedKey;
-                OnPropertyChanged(nameof(KeyboardKeyDisplay));
-                isSettingKeyboardKey = false;
-                dialog.Close();
-            };
+                    var dialog = new Window
+                    {
+                        Title = "Set Key",
+                        Content = new TextBlock
+                        {
+                            Text = "Press a key to set the keyboard key. Press Esc to cancel.",
+                            Margin = new Thickness(10)
+                        },
+                        Width = 300,
+                        Height = 100,
+                        WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                        Owner = Application.Current.MainWindow
+                    };
+                    dialog.Show();
+                    dialog.KeyDown += (s, e) =>
+                    {
+                        if (e.Key == Key.Escape)
+                        {
+                            capturedKey = Key.None;
+                            isSettingKeyboardKey = false;
+                            dialog.Close();
+                            return;
+                        }
+                        capturedKey = e.Key;
+                        KeyboardKey = capturedKey;
+                        OnPropertyChanged(nameof(KeyboardKeyDisplay));
+                        isSettingKeyboardKey = false;
+                        dialog.Close();
+                    };
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in SetKey: {ex.Message}");
+                MessageBox.Show($"Failed to set key: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void SetConstant(object _)
@@ -768,27 +960,72 @@ namespace AutoClacker.ViewModels
 
         private void ResetSettings(object _)
         {
+            // Stop any ongoing automation
+            if (IsRunning)
+            {
+                automationController.StopAutomation();
+                if (currentAutomationTask != null)
+                {
+                    try
+                    {
+                        currentAutomationTask.Wait(); // Wait for the automation to fully stop
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error waiting for automation to stop during reset: {ex.Message}");
+                    }
+                }
+                currentAutomationTask = null;
+            }
+
+            // Reset settings to default with fallbacks
             Properties.Settings.Default.Reset();
-            settings.ClickScope = Properties.Settings.Default.ClickScope;
+            settings.ClickScope = Properties.Settings.Default.ClickScope ?? "Global";
             settings.TargetApplication = Properties.Settings.Default.TargetApplication;
-            settings.ActionType = Properties.Settings.Default.ActionType;
-            settings.MouseButton = Properties.Settings.Default.MouseButton;
-            settings.ClickType = Properties.Settings.Default.ClickType;
-            settings.MouseMode = Properties.Settings.Default.MouseMode;
-            settings.ClickMode = Properties.Settings.Default.ClickMode;
+            settings.ActionType = Properties.Settings.Default.ActionType ?? "Mouse";
+            settings.MouseButton = Properties.Settings.Default.MouseButton ?? "Left";
+            settings.ClickType = Properties.Settings.Default.ClickType ?? "Single";
+            settings.MouseMode = Properties.Settings.Default.MouseMode ?? "Click";
+            settings.ClickMode = Properties.Settings.Default.ClickMode ?? "Constant";
             settings.ClickDuration = Properties.Settings.Default.ClickDuration;
             settings.MouseHoldDuration = Properties.Settings.Default.MouseHoldDuration;
-            settings.HoldMode = Properties.Settings.Default.HoldMode;
+            settings.HoldMode = Properties.Settings.Default.HoldMode ?? "ConstantHold";
+            settings.MousePhysicalHoldMode = Properties.Settings.Default.MousePhysicalHoldMode;
             settings.KeyboardKey = (Key)Properties.Settings.Default.KeyboardKey;
-            settings.KeyboardMode = Properties.Settings.Default.KeyboardMode;
+            settings.KeyboardMode = Properties.Settings.Default.KeyboardMode ?? "Press";
             settings.KeyboardHoldDuration = Properties.Settings.Default.KeyboardHoldDuration;
+            settings.KeyboardPhysicalHoldMode = Properties.Settings.Default.KeyboardPhysicalHoldMode;
             settings.TriggerKey = (Key)Properties.Settings.Default.TriggerKey;
             settings.TriggerKeyModifiers = (ModifierKeys)Properties.Settings.Default.TriggerKeyModifiers;
             settings.Interval = Properties.Settings.Default.Interval;
-            settings.Mode = Properties.Settings.Default.Mode;
+            settings.Mode = Properties.Settings.Default.Mode ?? "Constant";
             settings.TotalDuration = Properties.Settings.Default.TotalDuration;
-            settings.Theme = Properties.Settings.Default.Theme;
+            settings.Theme = Properties.Settings.Default.Theme ?? "Light";
             settings.IsTopmost = Properties.Settings.Default.IsTopmost;
+
+            // Save the updated settings to ensure defaults are persisted
+            Properties.Settings.Default.ClickScope = settings.ClickScope;
+            Properties.Settings.Default.ActionType = settings.ActionType;
+            Properties.Settings.Default.MouseButton = settings.MouseButton;
+            Properties.Settings.Default.ClickType = settings.ClickType;
+            Properties.Settings.Default.MouseMode = settings.MouseMode;
+            Properties.Settings.Default.ClickMode = settings.ClickMode;
+            Properties.Settings.Default.HoldMode = settings.HoldMode;
+            Properties.Settings.Default.KeyboardMode = settings.KeyboardMode;
+            Properties.Settings.Default.Mode = settings.Mode;
+            Properties.Settings.Default.Theme = settings.Theme;
+            Properties.Settings.Default.Save();
+
+            // Reinitialize HotkeyManager and AutomationController with default settings
+            if (window != null)
+            {
+                hotkeyManager?.Dispose();
+                hotkeyManager = new HotkeyManager(window, this);
+                hotkeyManager.RegisterTriggerHotkey(settings.TriggerKey, settings.TriggerKeyModifiers);
+            }
+
+            // Reinitialize AutomationController to ensure it has the updated settings
+            automationController = new AutomationController(this);
 
             OnPropertyChanged(nameof(ClickScope));
             OnPropertyChanged(nameof(TargetApplication));
@@ -804,12 +1041,14 @@ namespace AutoClacker.ViewModels
             OnPropertyChanged(nameof(MouseHoldDurationSeconds));
             OnPropertyChanged(nameof(MouseHoldDurationMilliseconds));
             OnPropertyChanged(nameof(HoldMode));
+            OnPropertyChanged(nameof(MousePhysicalHoldMode));
             OnPropertyChanged(nameof(KeyboardKey));
             OnPropertyChanged(nameof(KeyboardKeyDisplay));
             OnPropertyChanged(nameof(KeyboardMode));
             OnPropertyChanged(nameof(KeyboardHoldDurationMinutes));
             OnPropertyChanged(nameof(KeyboardHoldDurationSeconds));
             OnPropertyChanged(nameof(KeyboardHoldDurationMilliseconds));
+            OnPropertyChanged(nameof(KeyboardPhysicalHoldMode));
             OnPropertyChanged(nameof(TriggerKey));
             OnPropertyChanged(nameof(TriggerKeyDisplay));
             OnPropertyChanged(nameof(TriggerKeyModifiers));
@@ -834,7 +1073,7 @@ namespace AutoClacker.ViewModels
             OnPropertyChanged(nameof(IsTimerMode));
             OnPropertyChanged(nameof(IsRestrictedMode));
 
-            hotkeyManager?.RegisterTriggerHotkey(settings.TriggerKey, settings.TriggerKeyModifiers);
+            Console.WriteLine("Settings reset to default, HotkeyManager and AutomationController reinitialized.");
         }
 
         public void UpdateStatus(string text, string color)
@@ -892,13 +1131,18 @@ namespace AutoClacker.ViewModels
 
     public class RelayCommand : ICommand
     {
-        private readonly Action<object> execute;
+        private readonly Func<object, Task> executeAsync;
         private readonly Func<object, bool> canExecute;
 
-        public RelayCommand(Action<object> execute, Func<object, bool> canExecute = null)
+        public RelayCommand(Func<object, Task> executeAsync, Func<object, bool> canExecute = null)
         {
-            this.execute = execute;
+            this.executeAsync = executeAsync;
             this.canExecute = canExecute;
+        }
+
+        public RelayCommand(Action<object> execute, Func<object, bool> canExecute = null)
+            : this(o => Task.Run(() => execute(o)), canExecute)
+        {
         }
 
         public event EventHandler CanExecuteChanged
@@ -909,6 +1153,12 @@ namespace AutoClacker.ViewModels
 
         public bool CanExecute(object parameter) => canExecute == null || canExecute(parameter);
 
-        public void Execute(object parameter) => execute(parameter);
+        public async void Execute(object parameter)
+        {
+            if (CanExecute(parameter))
+            {
+                await executeAsync(parameter);
+            }
+        }
     }
 }

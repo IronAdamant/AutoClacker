@@ -6,6 +6,7 @@ using AutoClacker.Models;
 using AutoClacker.ViewModels;
 using AutoClacker.Utilities;
 using System.Windows.Input;
+using System.Diagnostics;
 
 namespace AutoClacker.Controllers
 {
@@ -14,6 +15,11 @@ namespace AutoClacker.Controllers
         private readonly MainViewModel viewModel;
         private CancellationTokenSource cts;
         private readonly ApplicationDetector detector = new ApplicationDetector();
+        private bool mouseButtonHeld;
+        private bool keyboardKeyHeld;
+        private Task currentAutomationTask;
+        private readonly object automationLock = new object();
+        private volatile bool isRunning;
 
         // SendInput related structs and constants
         [StructLayout(LayoutKind.Sequential)]
@@ -77,189 +83,369 @@ namespace AutoClacker.Controllers
 
         public AutomationController(MainViewModel viewModel)
         {
-            this.viewModel = viewModel;
+            this.viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
         }
 
         public async Task StartAutomation()
         {
-            if (cts != null) return; // Already running
-            cts = new CancellationTokenSource();
-            var localCts = cts;
-
-            viewModel.UpdateStatus("Running", "Green");
-
-            try
+            Console.WriteLine("StartAutomation called.");
+            lock (automationLock)
             {
-                var settings = new Settings
+                if (isRunning)
                 {
-                    ClickScope = Properties.Settings.Default.ClickScope,
-                    TargetApplication = Properties.Settings.Default.TargetApplication,
-                    ActionType = Properties.Settings.Default.ActionType,
-                    MouseButton = Properties.Settings.Default.MouseButton,
-                    ClickType = Properties.Settings.Default.ClickType,
-                    MouseMode = Properties.Settings.Default.MouseMode,
-                    ClickMode = Properties.Settings.Default.ClickMode,
-                    ClickDuration = Properties.Settings.Default.ClickDuration,
-                    MouseHoldDuration = Properties.Settings.Default.MouseHoldDuration,
-                    HoldMode = Properties.Settings.Default.HoldMode,
-                    KeyboardKey = (Key)Properties.Settings.Default.KeyboardKey,
-                    KeyboardMode = Properties.Settings.Default.KeyboardMode,
-                    KeyboardHoldDuration = Properties.Settings.Default.KeyboardHoldDuration,
-                    TriggerKey = (Key)Properties.Settings.Default.TriggerKey,
-                    TriggerKeyModifiers = (ModifierKeys)Properties.Settings.Default.TriggerKeyModifiers,
-                    Interval = Properties.Settings.Default.Interval,
-                    Mode = Properties.Settings.Default.Mode,
-                    TotalDuration = Properties.Settings.Default.TotalDuration,
-                    Theme = Properties.Settings.Default.Theme,
-                    IsTopmost = Properties.Settings.Default.IsTopmost
-                };
-
-                if (settings.ClickScope == "Restricted" && !ValidateTargetApplication(settings))
-                {
-                    StopAutomation("Target application not active");
-                    return;
-                }
-
-                if (settings.ActionType == "Mouse" && settings.MouseMode == "Hold" && settings.HoldMode == "HoldDuration" && settings.MouseHoldDuration > settings.Interval)
-                {
-                    StopAutomation("Mouse hold duration must be less than or equal to interval");
-                    return;
-                }
-                if (settings.ActionType == "Keyboard" && settings.KeyboardMode == "Hold" && settings.KeyboardHoldDuration != TimeSpan.Zero && settings.KeyboardHoldDuration > settings.Interval)
-                {
-                    StopAutomation("Keyboard hold duration must be less than or equal to interval");
-                    return;
-                }
-
-                // Increase minimum interval to 100ms to prevent overly rapid input
-                TimeSpan effectiveInterval = settings.Interval.TotalMilliseconds < 100 ? TimeSpan.FromMilliseconds(100) : settings.Interval;
-
-                var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-                bool mouseButtonHeld = false;
-
-                viewModel.StartTimers(); // Start the timers for decrementing displays
-
-                while (!localCts.IsCancellationRequested)
-                {
-                    var cycleStartTime = stopwatch.Elapsed;
-
-                    if (settings.ClickScope == "Restricted")
-                        await PerformRestrictedAction(settings);
-                    else
+                    Console.WriteLine("Automation already running. Stopping previous automation.");
+                    StopAutomation("Previous automation stopped to start a new one.");
+                    try
                     {
-                        if (settings.ActionType == "Mouse" && settings.MouseMode == "Hold" && settings.HoldMode == "ConstantHold")
+                        currentAutomationTask?.Wait(TimeSpan.FromSeconds(5)); // Wait up to 5 seconds for the task to stop
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error waiting for previous automation task to stop: {ex.Message}");
+                    }
+                }
+
+                cts = new CancellationTokenSource();
+                isRunning = true;
+            }
+
+            var token = cts.Token;
+            currentAutomationTask = Task.Run(async () =>
+            {
+                try
+                {
+                    viewModel.UpdateStatus("Running", "Green");
+
+                    if (!ValidateSettings())
+                    {
+                        StopAutomation("Invalid settings detected");
+                        return;
+                    }
+
+                    Settings settings = viewModel.CurrentSettings;
+                    if (settings.ClickScope == "Restricted" && !ValidateTargetApplication(settings))
+                    {
+                        StopAutomation("Target application not active");
+                        return;
+                    }
+
+                    TimeSpan effectiveInterval = settings.Interval.TotalMilliseconds < 100 ? TimeSpan.FromMilliseconds(100) : settings.Interval;
+
+                    mouseButtonHeld = false;
+                    keyboardKeyHeld = false;
+
+                    var stopwatch = Stopwatch.StartNew();
+                    bool shouldBreak = false;
+
+                    while (!token.IsCancellationRequested && !shouldBreak)
+                    {
+                        var cycleStartTime = stopwatch.Elapsed;
+
+                        if (settings.ClickScope == "Restricted")
                         {
-                            if (!mouseButtonHeld)
-                            {
-                                MouseEventDown(settings);
-                                mouseButtonHeld = true;
-                            }
+                            await PerformRestrictedAction(settings, stopwatch, token);
                         }
                         else
                         {
-                            if (mouseButtonHeld)
+                            if (settings.ActionType == "Mouse" && settings.MouseMode == "Hold" && settings.HoldMode == "ConstantHold")
                             {
-                                MouseEventUp(settings);
-                                mouseButtonHeld = false;
+                                if (!mouseButtonHeld)
+                                {
+                                    if (settings.MousePhysicalHoldMode)
+                                        await SimulatePhysicalMouseHold(settings, token, stopwatch);
+                                    else
+                                        MouseEventDown(settings);
+                                    mouseButtonHeld = true;
+                                }
                             }
-                            await PerformGlobalAction(settings);
+                            else if (settings.ActionType == "Keyboard" && settings.KeyboardMode == "Hold" && settings.KeyboardHoldDuration == TimeSpan.Zero)
+                            {
+                                if (!keyboardKeyHeld)
+                                {
+                                    if (settings.KeyboardPhysicalHoldMode)
+                                        await SimulatePhysicalKeyboardHold(settings, token, stopwatch);
+                                    else
+                                        KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 0);
+                                    keyboardKeyHeld = true;
+                                }
+                            }
+                            else
+                            {
+                                if (mouseButtonHeld)
+                                {
+                                    MouseEventUp(settings);
+                                    mouseButtonHeld = false;
+                                }
+                                if (keyboardKeyHeld)
+                                {
+                                    KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 2);
+                                    keyboardKeyHeld = false;
+                                }
+                                await PerformGlobalAction(settings, stopwatch, token);
+                            }
+                        }
+
+                        // Update remaining times
+                        if (settings.ActionType == "Mouse" && settings.MouseMode == "Click" && settings.ClickMode == "Duration" && settings.ClickDuration != TimeSpan.Zero)
+                        {
+                            var remainingClickDuration = settings.ClickDuration - stopwatch.Elapsed;
+                            viewModel.UpdateRemainingClickDuration(remainingClickDuration);
+                            if (remainingClickDuration <= TimeSpan.Zero)
+                            {
+                                shouldBreak = true;
+                            }
+                        }
+                        if (settings.ActionType == "Keyboard" && settings.KeyboardMode == "Press" && settings.Mode == "Timer" && stopwatch.Elapsed >= settings.TotalDuration)
+                        {
+                            var remainingPressTimer = settings.TotalDuration - stopwatch.Elapsed;
+                            viewModel.UpdateRemainingPressTimer(remainingPressTimer);
+                            if (remainingPressTimer <= TimeSpan.Zero)
+                            {
+                                shouldBreak = true;
+                            }
+                        }
+
+                        var cycleElapsedTime = stopwatch.Elapsed - cycleStartTime;
+                        var remainingCycleTime = effectiveInterval - cycleElapsedTime;
+                        if (remainingCycleTime.TotalMilliseconds > 0)
+                        {
+                            await Task.Delay(remainingCycleTime, token);
                         }
                     }
 
-                    if (settings.ActionType == "Mouse" && settings.MouseMode == "Click" && settings.ClickMode == "Duration" && settings.ClickDuration != TimeSpan.Zero && stopwatch.Elapsed >= settings.ClickDuration)
+                    if (mouseButtonHeld)
                     {
-                        break;
+                        MouseEventUp(settings);
+                        mouseButtonHeld = false;
                     }
-                    if (settings.ActionType == "Keyboard" && settings.KeyboardMode == "Press" && settings.Mode == "Timer" && stopwatch.Elapsed >= settings.TotalDuration)
+                    if (keyboardKeyHeld)
                     {
-                        break;
+                        KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 2);
+                        keyboardKeyHeld = false;
                     }
 
-                    var cycleElapsedTime = stopwatch.Elapsed - cycleStartTime;
-                    var remainingCycleTime = effectiveInterval - cycleElapsedTime;
-                    if (remainingCycleTime.TotalMilliseconds > 0)
-                    {
-                        await Task.Delay(remainingCycleTime, localCts.Token);
-                    }
+                    StopAutomation("Automation completed");
                 }
-
-                if (mouseButtonHeld)
+                catch (TaskCanceledException)
                 {
-                    MouseEventUp(settings);
+                    StopAutomation("Automation stopped");
                 }
+                catch (Exception ex)
+                {
+                    StopAutomation($"Error: {ex.Message}");
+                }
+                finally
+                {
+                    lock (automationLock)
+                    {
+                        isRunning = false;
+                    }
+                }
+            }, token);
 
-                StopAutomation("Automation completed");
-            }
-            catch (TaskCanceledException)
-            {
-                StopAutomation("Automation stopped");
-            }
-            catch (Exception ex)
-            {
-                StopAutomation($"Error: {ex.Message}");
-            }
+            await currentAutomationTask;
         }
 
         public void StopAutomation(string message = "Not running")
         {
-            cts?.Cancel();
-            cts?.Dispose();
-            cts = null;
-            viewModel.StopTimers(); // Stop the timers when automation ends
-            viewModel.UpdateStatus(message, "Red");
+            Console.WriteLine($"StopAutomation called with message: {message}");
+            lock (automationLock)
+            {
+                if (cts != null)
+                {
+                    cts.Cancel();
+                    cts.Dispose();
+                    cts = null;
+                }
+
+                if (mouseButtonHeld)
+                {
+                    MouseEventUp(viewModel.CurrentSettings ?? new Settings { MouseButton = "Left" });
+                    mouseButtonHeld = false;
+                }
+                if (keyboardKeyHeld)
+                {
+                    KeybdEvent((byte)KeyInterop.VirtualKeyFromKey((Key)Properties.Settings.Default.KeyboardKey), 2);
+                    keyboardKeyHeld = false;
+                }
+
+                viewModel?.StopTimers();
+                viewModel?.UpdateStatus(message, "Red");
+                isRunning = false;
+            }
+        }
+
+        private bool ValidateSettings()
+        {
+            var settings = viewModel.CurrentSettings;
+            if (settings == null)
+            {
+                Console.WriteLine("Settings object is null.");
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(settings.ActionType))
+            {
+                Console.WriteLine("ActionType is null or empty. Setting to default 'Mouse'.");
+                settings.ActionType = "Mouse";
+            }
+            if (string.IsNullOrEmpty(settings.MouseButton))
+            {
+                Console.WriteLine("MouseButton is null or empty. Setting to default 'Left'.");
+                settings.MouseButton = "Left";
+            }
+            if (string.IsNullOrEmpty(settings.ClickType))
+            {
+                Console.WriteLine("ClickType is null or empty. Setting to default 'Single'.");
+                settings.ClickType = "Single";
+            }
+            if (string.IsNullOrEmpty(settings.MouseMode))
+            {
+                Console.WriteLine("MouseMode is null or empty. Setting to default 'Click'.");
+                settings.MouseMode = "Click";
+            }
+            if (string.IsNullOrEmpty(settings.ClickMode))
+            {
+                Console.WriteLine("ClickMode is null or empty. Setting to default 'Constant'.");
+                settings.ClickMode = "Constant";
+            }
+            if (string.IsNullOrEmpty(settings.HoldMode))
+            {
+                Console.WriteLine("HoldMode is null or empty. Setting to default 'ConstantHold'.");
+                settings.HoldMode = "ConstantHold";
+            }
+            if (string.IsNullOrEmpty(settings.KeyboardMode))
+            {
+                Console.WriteLine("KeyboardMode is null or empty. Setting to default 'Press'.");
+                settings.KeyboardMode = "Press";
+            }
+            if (string.IsNullOrEmpty(settings.Mode))
+            {
+                Console.WriteLine("Mode is null or empty. Setting to default 'Constant'.");
+                settings.Mode = "Constant";
+            }
+
+            return true;
         }
 
         private bool ValidateTargetApplication(Settings settings)
         {
             var process = detector.GetProcessByName(settings.TargetApplication);
-            return process != null && !IsIconic(process.MainWindowHandle);
+            bool isValid = process != null && !IsIconic(process.MainWindowHandle);
+            Console.WriteLine($"ValidateTargetApplication: Target={settings.TargetApplication}, IsValid={isValid}");
+            return isValid;
         }
 
-        private async Task PerformGlobalAction(Settings settings)
+        private async Task PerformGlobalAction(Settings settings, Stopwatch stopwatch, CancellationToken token)
         {
+            Console.WriteLine("PerformGlobalAction called.");
+            if (settings == null)
+            {
+                Console.WriteLine("settings is null in PerformGlobalAction. Stopping automation.");
+                StopAutomation("Error: Settings is null");
+                return;
+            }
+
             if (settings.ActionType == "Mouse")
             {
                 if (settings.MouseMode == "Click")
                 {
+                    Console.WriteLine("Performing mouse click.");
                     MouseEventDown(settings);
-                    await Task.Delay(10); // Small delay to ensure click is registered
+                    await Task.Delay(10, token);
                     MouseEventUp(settings);
                     if (settings.ClickType == "Double")
                     {
-                        await Task.Delay(50); // Delay between clicks for double click
+                        Console.WriteLine("Performing double click.");
+                        await Task.Delay(50, token);
                         MouseEventDown(settings);
-                        await Task.Delay(10);
+                        await Task.Delay(10, token);
                         MouseEventUp(settings);
                     }
                 }
                 else if (settings.HoldMode == "HoldDuration")
                 {
-                    Console.WriteLine($"Holding mouse for {settings.MouseHoldDuration.TotalMilliseconds} ms, Interval: {settings.Interval.TotalMilliseconds} ms");
-                    MouseEventDown(settings);
-                    await Task.Delay(settings.MouseHoldDuration);
-                    MouseEventUp(settings);
+                    Console.WriteLine($"Holding mouse for {settings.MouseHoldDuration.TotalMilliseconds} ms.");
+                    if (settings.MousePhysicalHoldMode)
+                    {
+                        await SimulatePhysicalMouseHold(settings, token, stopwatch, settings.MouseHoldDuration);
+                    }
+                    else
+                    {
+                        TimeSpan holdDuration = settings.MouseHoldDuration.TotalMilliseconds < 500 ? TimeSpan.FromMilliseconds(500) : settings.MouseHoldDuration;
+                        MouseEventDown(settings);
+                        var holdStartTime = stopwatch.Elapsed;
+                        while (stopwatch.Elapsed - holdStartTime < holdDuration && !token.IsCancellationRequested)
+                        {
+                            var remainingMouseHoldDuration = holdDuration - (stopwatch.Elapsed - holdStartTime);
+                            if (viewModel != null)
+                            {
+                                viewModel.UpdateRemainingMouseHoldDuration(remainingMouseHoldDuration);
+                            }
+                            else
+                            {
+                                Console.WriteLine("viewModel is null in PerformGlobalAction (Mouse Hold). Stopping automation.");
+                                StopAutomation("Error: ViewModel is null");
+                                break;
+                            }
+                            await Task.Delay(1, token);
+                        }
+                        MouseEventUp(settings);
+                    }
                 }
             }
             else
             {
                 if (settings.KeyboardMode == "Press")
                 {
+                    Console.WriteLine("Performing keyboard press.");
                     KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 0);
-                    await Task.Delay(50); // Increased delay to prevent buffering issues
+                    await Task.Delay(50, token);
                     KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 2);
                 }
-                else
+                else if (settings.KeyboardHoldDuration != TimeSpan.Zero)
                 {
-                    Console.WriteLine($"Holding keyboard for {settings.KeyboardHoldDuration.TotalMilliseconds} ms, Interval: {settings.Interval.TotalMilliseconds} ms");
-                    KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 0);
-                    await Task.Delay(settings.KeyboardHoldDuration);
-                    KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 2);
+                    Console.WriteLine($"Holding keyboard for {settings.KeyboardHoldDuration.TotalMilliseconds} ms.");
+                    if (settings.KeyboardPhysicalHoldMode)
+                    {
+                        await SimulatePhysicalKeyboardHold(settings, token, stopwatch, settings.KeyboardHoldDuration);
+                    }
+                    else
+                    {
+                        TimeSpan holdDuration = settings.KeyboardHoldDuration.TotalMilliseconds < 500 ? TimeSpan.FromMilliseconds(500) : settings.KeyboardHoldDuration;
+                        KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 0);
+                        var holdStartTime = stopwatch.Elapsed;
+                        while (stopwatch.Elapsed - holdStartTime < holdDuration && !token.IsCancellationRequested)
+                        {
+                            var remainingHoldDuration = holdDuration - (stopwatch.Elapsed - holdStartTime);
+                            if (viewModel != null)
+                            {
+                                viewModel.UpdateRemainingHoldDuration(remainingHoldDuration);
+                            }
+                            else
+                            {
+                                Console.WriteLine("viewModel is null in PerformGlobalAction (Keyboard Hold). Stopping automation.");
+                                StopAutomation("Error: ViewModel is null");
+                                break;
+                            }
+                            await Task.Delay(1, token);
+                        }
+                        KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 2);
+                    }
                 }
             }
         }
 
-        private async Task PerformRestrictedAction(Settings settings)
+        private async Task PerformRestrictedAction(Settings settings, Stopwatch stopwatch, CancellationToken token)
         {
+            Console.WriteLine("PerformRestrictedAction called.");
+            if (settings == null)
+            {
+                Console.WriteLine("settings is null in PerformRestrictedAction. Stopping automation.");
+                StopAutomation("Error: Settings is null");
+                return;
+            }
+
             var process = detector.GetProcessByName(settings.TargetApplication);
             if (process == null || IsIconic(process.MainWindowHandle))
             {
@@ -273,50 +459,209 @@ namespace AutoClacker.Controllers
 
             if (settings.ActionType == "Mouse")
             {
-                // For restricted mode, we need to move the cursor to the target position
-                // Set cursor position (not implemented here, as SendInput can directly simulate clicks)
                 if (settings.MouseMode == "Click")
                 {
+                    Console.WriteLine("Performing restricted mouse click.");
                     MouseEventDown(settings);
-                    await Task.Delay(10);
+                    await Task.Delay(10, token);
                     MouseEventUp(settings);
                     if (settings.ClickType == "Double")
                     {
-                        await Task.Delay(50);
+                        Console.WriteLine("Performing restricted double click.");
+                        await Task.Delay(50, token);
                         MouseEventDown(settings);
-                        await Task.Delay(10);
+                        await Task.Delay(10, token);
                         MouseEventUp(settings);
                     }
                 }
                 else if (settings.HoldMode == "HoldDuration")
                 {
-                    Console.WriteLine($"Holding mouse (restricted) for {settings.MouseHoldDuration.TotalMilliseconds} ms, Interval: {settings.Interval.TotalMilliseconds} ms");
-                    MouseEventDown(settings);
-                    await Task.Delay(settings.MouseHoldDuration);
-                    MouseEventUp(settings);
+                    Console.WriteLine($"Holding mouse (restricted) for {settings.MouseHoldDuration.TotalMilliseconds} ms.");
+                    if (settings.MousePhysicalHoldMode)
+                    {
+                        await SimulatePhysicalMouseHold(settings, token, stopwatch, settings.MouseHoldDuration);
+                    }
+                    else
+                    {
+                        TimeSpan holdDuration = settings.MouseHoldDuration.TotalMilliseconds < 500 ? TimeSpan.FromMilliseconds(500) : settings.MouseHoldDuration;
+                        MouseEventDown(settings);
+                        var holdStartTime = stopwatch.Elapsed;
+                        while (stopwatch.Elapsed - holdStartTime < holdDuration && !token.IsCancellationRequested)
+                        {
+                            var remainingMouseHoldDuration = holdDuration - (stopwatch.Elapsed - holdStartTime);
+                            if (viewModel != null)
+                            {
+                                viewModel.UpdateRemainingMouseHoldDuration(remainingMouseHoldDuration);
+                            }
+                            else
+                            {
+                                Console.WriteLine("viewModel is null in PerformRestrictedAction (Mouse Hold). Stopping automation.");
+                                StopAutomation("Error: ViewModel is null");
+                                break;
+                            }
+                            await Task.Delay(1, token);
+                        }
+                        MouseEventUp(settings);
+                    }
+                }
+                else if (settings.HoldMode == "ConstantHold")
+                {
+                    if (settings.MousePhysicalHoldMode)
+                    {
+                        await SimulatePhysicalMouseHold(settings, token, stopwatch);
+                    }
+                    else
+                    {
+                        MouseEventDown(settings);
+                    }
                 }
             }
             else
             {
-                // Keyboard input remains the same for restricted mode
                 if (settings.KeyboardMode == "Press")
                 {
+                    Console.WriteLine("Performing restricted keyboard press.");
                     KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 0);
-                    await Task.Delay(50); // Increased delay to prevent buffering issues
+                    await Task.Delay(50, token);
                     KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 2);
+                }
+                else if (settings.KeyboardHoldDuration != TimeSpan.Zero)
+                {
+                    Console.WriteLine($"Holding keyboard (restricted) for {settings.KeyboardHoldDuration.TotalMilliseconds} ms.");
+                    if (settings.KeyboardPhysicalHoldMode)
+                    {
+                        await SimulatePhysicalKeyboardHold(settings, token, stopwatch, settings.KeyboardHoldDuration);
+                    }
+                    else
+                    {
+                        TimeSpan holdDuration = settings.KeyboardHoldDuration.TotalMilliseconds < 500 ? TimeSpan.FromMilliseconds(500) : settings.KeyboardHoldDuration;
+                        KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 0);
+                        var holdStartTime = stopwatch.Elapsed;
+                        while (stopwatch.Elapsed - holdStartTime < holdDuration && !token.IsCancellationRequested)
+                        {
+                            var remainingHoldDuration = holdDuration - (stopwatch.Elapsed - holdStartTime);
+                            if (viewModel != null)
+                            {
+                                viewModel.UpdateRemainingHoldDuration(remainingHoldDuration);
+                            }
+                            else
+                            {
+                                Console.WriteLine("viewModel is null in PerformRestrictedAction (Keyboard Hold). Stopping automation.");
+                                StopAutomation("Error: ViewModel is null");
+                                break;
+                            }
+                            await Task.Delay(1, token);
+                        }
+                        KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 2);
+                    }
                 }
                 else
                 {
-                    Console.WriteLine($"Holding keyboard (restricted) for {settings.KeyboardHoldDuration.TotalMilliseconds} ms, Interval: {settings.Interval.TotalMilliseconds} ms");
-                    KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 0);
-                    await Task.Delay(settings.KeyboardHoldDuration);
-                    KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 2);
+                    if (settings.KeyboardPhysicalHoldMode)
+                    {
+                        await SimulatePhysicalKeyboardHold(settings, token, stopwatch);
+                    }
+                    else
+                    {
+                        KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 0);
+                    }
                 }
+            }
+        }
+
+        private async Task SimulatePhysicalMouseHold(Settings settings, CancellationToken cancellationToken, Stopwatch stopwatch, TimeSpan? duration = null)
+        {
+            Console.WriteLine("SimulatePhysicalMouseHold called.");
+            if (settings == null)
+            {
+                Console.WriteLine("settings is null in SimulatePhysicalMouseHold. Stopping automation.");
+                StopAutomation("Error: Settings is null");
+                return;
+            }
+
+            var startTime = stopwatch.Elapsed;
+            TimeSpan holdDuration = duration ?? TimeSpan.MaxValue;
+
+            while (!cancellationToken.IsCancellationRequested && (stopwatch.Elapsed - startTime) < holdDuration)
+            {
+                MouseEventDown(settings);
+                if (duration.HasValue)
+                {
+                    var remainingMouseHoldDuration = holdDuration - (stopwatch.Elapsed - startTime);
+                    if (viewModel != null)
+                    {
+                        viewModel.UpdateRemainingMouseHoldDuration(remainingMouseHoldDuration);
+                    }
+                    else
+                    {
+                        Console.WriteLine("viewModel is null in SimulatePhysicalMouseHold. Stopping automation.");
+                        StopAutomation("Error: ViewModel is null");
+                        break;
+                    }
+                }
+                await Task.Delay(50, cancellationToken);
+            }
+
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                MouseEventUp(settings);
+            }
+        }
+
+        private async Task SimulatePhysicalKeyboardHold(Settings settings, CancellationToken cancellationToken, Stopwatch stopwatch, TimeSpan? duration = null)
+        {
+            Console.WriteLine("SimulatePhysicalKeyboardHold called.");
+            if (settings == null)
+            {
+                Console.WriteLine("settings is null in SimulatePhysicalKeyboardHold. Stopping automation.");
+                StopAutomation("Error: Settings is null");
+                return;
+            }
+
+            var startTime = stopwatch.Elapsed;
+            TimeSpan holdDuration = duration ?? TimeSpan.MaxValue;
+
+            while (!cancellationToken.IsCancellationRequested && (stopwatch.Elapsed - startTime) < holdDuration)
+            {
+                KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 0);
+                if (duration.HasValue)
+                {
+                    var remainingHoldDuration = holdDuration - (stopwatch.Elapsed - startTime);
+                    if (viewModel != null)
+                    {
+                        viewModel.UpdateRemainingHoldDuration(remainingHoldDuration);
+                    }
+                    else
+                    {
+                        Console.WriteLine("viewModel is null in SimulatePhysicalKeyboardHold. Stopping automation.");
+                        StopAutomation("Error: ViewModel is null");
+                        break;
+                    }
+                }
+                await Task.Delay(50, cancellationToken);
+            }
+
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 2);
             }
         }
 
         private void MouseEventDown(Settings settings)
         {
+            if (settings == null)
+            {
+                Console.WriteLine("settings is null in MouseEventDown. Cannot proceed.");
+                return;
+            }
+
+            if (string.IsNullOrEmpty(settings.MouseButton))
+            {
+                Console.WriteLine("MouseButton is null or empty in MouseEventDown. Using default 'Left'.");
+                settings.MouseButton = "Left";
+            }
+
+            Console.WriteLine($"MouseEventDown called for {settings.MouseButton}.");
             INPUT[] inputs = new INPUT[1];
             inputs[0].type = INPUT_MOUSE;
             inputs[0].u.mi.dx = 0;
@@ -336,6 +681,10 @@ namespace AutoClacker.Controllers
                 case "Middle":
                     inputs[0].u.mi.dwFlags = MOUSEEVENTF_MIDDLEDOWN;
                     break;
+                default:
+                    Console.WriteLine($"Invalid MouseButton value '{settings.MouseButton}' in MouseEventDown. Using default 'Left'.");
+                    inputs[0].u.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
+                    break;
             }
 
             SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
@@ -343,6 +692,19 @@ namespace AutoClacker.Controllers
 
         private void MouseEventUp(Settings settings)
         {
+            if (settings == null)
+            {
+                Console.WriteLine("settings is null in MouseEventUp. Cannot proceed.");
+                return;
+            }
+
+            if (string.IsNullOrEmpty(settings.MouseButton))
+            {
+                Console.WriteLine("MouseButton is null or empty in MouseEventUp. Using default 'Left'.");
+                settings.MouseButton = "Left";
+            }
+
+            Console.WriteLine($"MouseEventUp called for {settings.MouseButton}.");
             INPUT[] inputs = new INPUT[1];
             inputs[0].type = INPUT_MOUSE;
             inputs[0].u.mi.dx = 0;
@@ -362,6 +724,10 @@ namespace AutoClacker.Controllers
                 case "Middle":
                     inputs[0].u.mi.dwFlags = MOUSEEVENTF_MIDDLEUP;
                     break;
+                default:
+                    Console.WriteLine($"Invalid MouseButton value '{settings.MouseButton}' in MouseEventUp. Using default 'Left'.");
+                    inputs[0].u.mi.dwFlags = MOUSEEVENTF_LEFTUP;
+                    break;
             }
 
             SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
@@ -369,6 +735,7 @@ namespace AutoClacker.Controllers
 
         private void KeybdEvent(byte key, uint flags)
         {
+            Console.WriteLine($"KeybdEvent called: Key={key}, Flags={flags}.");
             INPUT[] inputs = new INPUT[1];
             inputs[0].type = INPUT_KEYBOARD;
             inputs[0].u.ki.wVk = key;

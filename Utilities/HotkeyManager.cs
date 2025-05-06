@@ -31,8 +31,13 @@ namespace AutoClacker.Utilities
             this.window = window;
             this.viewModel = viewModel;
             var source = PresentationSource.FromVisual(window) as HwndSource;
+            if (source == null)
+            {
+                throw new InvalidOperationException("Failed to get HwndSource from window.");
+            }
             hWnd = source.Handle;
             source.AddHook(WndProc);
+            Console.WriteLine("HotkeyManager initialized successfully.");
         }
 
         public void RegisterTriggerHotkey(Key key, ModifierKeys modifiers)
@@ -47,12 +52,17 @@ namespace AutoClacker.Utilities
             uint vk = (uint)KeyInterop.VirtualKeyFromKey(key);
             bool success = RegisterHotKey(hWnd, hotkeyId, fsModifiers, vk);
             Console.WriteLine($"Hotkey registration: Key={key}, Modifiers={fsModifiers}, Success={success}");
+            if (!success)
+            {
+                throw new InvalidOperationException($"Failed to register hotkey: Key={key}, Modifiers={fsModifiers}. It may be in use by another application.");
+            }
         }
 
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
             if (msg == WM_HOTKEY && wParam.ToInt32() == hotkeyId)
             {
+                Console.WriteLine("Hotkey triggered, executing ToggleAutomationCommand.");
                 viewModel.ToggleAutomationCommand.Execute(null);
                 handled = true;
             }
@@ -62,6 +72,7 @@ namespace AutoClacker.Utilities
         public void Dispose()
         {
             UnregisterHotKey(hWnd, hotkeyId);
+            Console.WriteLine("HotkeyManager disposed, unregistered hotkey.");
         }
     }
 }

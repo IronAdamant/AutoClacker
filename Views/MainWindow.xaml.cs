@@ -12,11 +12,6 @@ namespace AutoClacker.Views
         public MainWindow()
         {
             InitializeComponent();
-            if (Properties.Settings.Default.TriggerKey != 116) // 116 is Key.F5
-            {
-                Properties.Settings.Default.TriggerKey = 116;
-                Properties.Settings.Default.Save();
-            }
             viewModel = new MainViewModel(this);
             DataContext = viewModel;
             KeyDown += MainWindow_KeyDown;
