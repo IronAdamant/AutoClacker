@@ -9,6 +9,7 @@ using AutoClacker.Models;
 using AutoClacker.Controllers;
 using AutoClacker.Utilities;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace AutoClacker.ViewModels
 {
@@ -29,6 +30,7 @@ namespace AutoClacker.ViewModels
         private List<string> clickTypeOptions;
         private Window window;
         private Task currentAutomationTask;
+        private readonly object toggleLock = new object(); // Prevent concurrent ToggleAutomation calls
 
         // Single timer for UI updates (100ms interval)
         private readonly DispatcherTimer uiUpdateTimer;
@@ -130,44 +132,50 @@ namespace AutoClacker.ViewModels
         }
 
         // Methods to update remaining times (called by AutomationController)
-        public void UpdateRemainingClickDuration(TimeSpan remaining)
+        public async void UpdateRemainingClickDuration(TimeSpan remaining)
         {
             remainingClickDuration = remaining;
             if (remaining <= TimeSpan.Zero)
             {
                 remainingClickDuration = TimeSpan.Zero;
-                automationController.StopAutomation("Click Duration completed");
+                await Task.Delay(100); // Allow UI to update before stopping
+                automationController?.StopAutomation("Click Duration completed");
             }
         }
 
-        public void UpdateRemainingPressTimer(TimeSpan remaining)
+        public async void UpdateRemainingPressTimer(TimeSpan remaining)
         {
             remainingPressTimer = remaining;
             if (remaining <= TimeSpan.Zero)
             {
                 remainingPressTimer = TimeSpan.Zero;
-                automationController.StopAutomation("Press Timer completed");
+                await Task.Delay(100); // Allow UI to update before stopping
+                automationController?.StopAutomation("Press Timer completed");
             }
         }
 
-        public void UpdateRemainingHoldDuration(TimeSpan remaining)
+        public async void UpdateRemainingHoldDuration(TimeSpan remaining)
         {
             remainingHoldDuration = remaining;
             if (remaining <= TimeSpan.Zero)
             {
                 remainingHoldDuration = TimeSpan.Zero;
-                automationController.StopAutomation("Hold Duration completed");
+                await Task.Delay(100); // Allow UI to update before stopping
+                automationController?.StopAutomation("Hold Duration completed");
             }
+            UpdateRemainingTimesDisplay(); // Force UI refresh
         }
 
-        public void UpdateRemainingMouseHoldDuration(TimeSpan remaining)
+        public async void UpdateRemainingMouseHoldDuration(TimeSpan remaining)
         {
             remainingMouseHoldDuration = remaining;
             if (remaining <= TimeSpan.Zero)
             {
                 remainingMouseHoldDuration = TimeSpan.Zero;
-                automationController.StopAutomation("Mouse Hold Duration completed");
+                await Task.Delay(100); // Allow UI to update before stopping
+                automationController?.StopAutomation("Mouse Hold Duration completed");
             }
+            UpdateRemainingTimesDisplay(); // Force UI refresh
         }
 
         // UI update method (called every 100ms)
@@ -188,6 +196,14 @@ namespace AutoClacker.ViewModels
             RemainingMouseHoldDurationMin = remainingMouseHoldDuration.Minutes;
             RemainingMouseHoldDurationSec = remainingMouseHoldDuration.Seconds;
             RemainingMouseHoldDurationMs = remainingMouseHoldDuration.Milliseconds;
+
+            // Force UI refresh for hold timers
+            OnPropertyChanged(nameof(RemainingHoldDurationMin));
+            OnPropertyChanged(nameof(RemainingHoldDurationSec));
+            OnPropertyChanged(nameof(RemainingHoldDurationMs));
+            OnPropertyChanged(nameof(RemainingMouseHoldDurationMin));
+            OnPropertyChanged(nameof(RemainingMouseHoldDurationSec));
+            OnPropertyChanged(nameof(RemainingMouseHoldDurationMs));
         }
 
         // Remaining time properties for display
@@ -265,6 +281,7 @@ namespace AutoClacker.ViewModels
 
         public void StartTimers()
         {
+            Console.WriteLine("StartTimers called.");
             // Initialize remaining times
             if (settings.ActionType == "Mouse" && settings.MouseMode == "Click" && settings.ClickMode == "Duration")
             {
@@ -285,10 +302,12 @@ namespace AutoClacker.ViewModels
 
             // Start the UI update timer
             uiUpdateTimer.Start();
+            Console.WriteLine("UI update timer started.");
         }
 
         public void StopTimers()
         {
+            Console.WriteLine("StopTimers called.");
             uiUpdateTimer.Stop();
             remainingClickDuration = TimeSpan.Zero;
             remainingPressTimer = TimeSpan.Zero;
@@ -307,6 +326,13 @@ namespace AutoClacker.ViewModels
             RemainingMouseHoldDurationMin = 0;
             RemainingMouseHoldDurationSec = 0;
             RemainingMouseHoldDurationMs = 0;
+        }
+
+        public void UpdateStatus(string text, string color)
+        {
+            StatusText = text;
+            StatusColor = color;
+            IsRunning = text == "Running";
         }
 
         public Settings CurrentSettings => settings; // Expose settings for AutomationController
@@ -732,9 +758,9 @@ namespace AutoClacker.ViewModels
                 OnPropertyChanged(nameof(IsTopmost));
                 Properties.Settings.Default.IsTopmost = value;
                 Properties.Settings.Default.Save();
-                if (Application.Current.MainWindow != null)
+                if (System.Windows.Application.Current.MainWindow != null)
                 {
-                    Application.Current.MainWindow.Topmost = value;
+                    System.Windows.Application.Current.MainWindow.Topmost = value;
                 }
             }
         }
@@ -785,50 +811,77 @@ namespace AutoClacker.ViewModels
 
         private async Task ToggleAutomation(object _)
         {
-            Console.WriteLine($"ToggleAutomation called. IsRunning: {IsRunning}, CurrentAutomationTask: {(currentAutomationTask != null ? "Running" : "Null")}");
-            if (IsRunning)
+            // Prevent concurrent ToggleAutomation calls
+            if (!Monitor.TryEnter(toggleLock))
             {
-                automationController.StopAutomation();
-                if (currentAutomationTask != null)
-                {
-                    try
-                    {
-                        await currentAutomationTask; // Wait for the automation to fully stop
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Error waiting for automation to stop: {ex.Message}");
-                    }
-                }
-                currentAutomationTask = null;
+                Console.WriteLine("ToggleAutomation already in progress, skipping.");
+                return;
             }
-            else
+
+            try
             {
-                if (currentAutomationTask != null)
+                Console.WriteLine($"ToggleAutomation called. IsRunning: {IsRunning}, CurrentAutomationTask: {(currentAutomationTask != null ? "Running" : "Null")}");
+                if (IsRunning)
                 {
-                    Console.WriteLine("Previous automation task still running, waiting for it to stop.");
-                    try
+                    if (automationController != null)
                     {
-                        await currentAutomationTask;
+                        automationController.StopAutomation();
+                        if (currentAutomationTask != null)
+                        {
+                            try
+                            {
+                                await Task.Delay(100); // Async wait for task completion
+                                await currentAutomationTask; // Wait for the automation to fully stop
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"Error waiting for automation to stop: {ex.Message}");
+                            }
+                        }
+                        currentAutomationTask = null;
                     }
-                    catch (Exception ex)
+                }
+                else
+                {
+                    if (currentAutomationTask != null)
                     {
-                        Console.WriteLine($"Error waiting for previous automation to stop: {ex.Message}");
+                        Console.WriteLine("Previous automation task still running, waiting for it to stop.");
+                        try
+                        {
+                            await Task.Delay(100); // Async wait for task completion
+                            await currentAutomationTask;
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Error waiting for previous automation to stop: {ex.Message}");
+                        }
+                    }
+                    if (automationController != null)
+                    {
+                        StartTimers(); // Ensure timers start before automation
+                        currentAutomationTask = automationController.StartAutomation();
+                        try
+                        {
+                            await currentAutomationTask; // Wait for StartAutomation to complete
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Windows.MessageBox.Show($"Automation failed: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Information);
+                        }
+                        finally
+                        {
+                            currentAutomationTask = null; // Clear the task reference when done
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("AutomationController is null, cannot start automation.");
                     }
                 }
-                currentAutomationTask = automationController.StartAutomation();
-                try
-                {
-                    await currentAutomationTask; // Wait for StartAutomation to complete
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Automation failed: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                finally
-                {
-                    currentAutomationTask = null; // Clear the task reference when done
-                }
+            }
+            finally
+            {
+                Monitor.Exit(toggleLock);
             }
         }
 
@@ -836,7 +889,7 @@ namespace AutoClacker.ViewModels
         {
             try
             {
-                await Application.Current.Dispatcher.InvokeAsync(() =>
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
                 {
                     isSettingToggleKey = true;
                     isSettingKeyboardKey = false;
@@ -844,7 +897,7 @@ namespace AutoClacker.ViewModels
                     var dialog = new Window
                     {
                         Title = "Set Toggle Key",
-                        Content = new TextBlock
+                        Content = new System.Windows.Controls.TextBlock
                         {
                             Text = "Press a key to set the toggle key. Press Esc to cancel.",
                             Margin = new Thickness(10)
@@ -852,7 +905,7 @@ namespace AutoClacker.ViewModels
                         Width = 300,
                         Height = 100,
                         WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                        Owner = Application.Current.MainWindow
+                        Owner = System.Windows.Application.Current.MainWindow
                     };
                     dialog.Show();
                     dialog.KeyDown += (s, e) =>
@@ -880,7 +933,7 @@ namespace AutoClacker.ViewModels
             catch (Exception ex)
             {
                 Console.WriteLine($"Error in SetTriggerKey: {ex.Message}");
-                MessageBox.Show($"Failed to set toggle key: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                System.Windows.MessageBox.Show($"Failed to set toggle key: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -888,7 +941,7 @@ namespace AutoClacker.ViewModels
         {
             try
             {
-                await Application.Current.Dispatcher.InvokeAsync(() =>
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
                 {
                     isSettingKeyboardKey = true;
                     isSettingToggleKey = false;
@@ -896,7 +949,7 @@ namespace AutoClacker.ViewModels
                     var dialog = new Window
                     {
                         Title = "Set Key",
-                        Content = new TextBlock
+                        Content = new System.Windows.Controls.TextBlock
                         {
                             Text = "Press a key to set the keyboard key. Press Esc to cancel.",
                             Margin = new Thickness(10)
@@ -904,7 +957,7 @@ namespace AutoClacker.ViewModels
                         Width = 300,
                         Height = 100,
                         WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                        Owner = Application.Current.MainWindow
+                        Owner = System.Windows.Application.Current.MainWindow
                     };
                     dialog.Show();
                     dialog.KeyDown += (s, e) =>
@@ -927,7 +980,7 @@ namespace AutoClacker.ViewModels
             catch (Exception ex)
             {
                 Console.WriteLine($"Error in SetKey: {ex.Message}");
-                MessageBox.Show($"Failed to set key: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                System.Windows.MessageBox.Show($"Failed to set key: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -963,7 +1016,7 @@ namespace AutoClacker.ViewModels
             // Stop any ongoing automation
             if (IsRunning)
             {
-                automationController.StopAutomation();
+                automationController?.StopAutomation();
                 if (currentAutomationTask != null)
                 {
                     try
@@ -993,7 +1046,7 @@ namespace AutoClacker.ViewModels
             settings.MouseHoldDuration = TimeSpan.FromSeconds(1);
             settings.HoldMode = "ConstantHold";
             settings.MousePhysicalHoldMode = false;
-            settings.KeyboardKey = Key.None;
+            settings.KeyboardKey = Key.Space; // Default to a valid key
             settings.KeyboardMode = "Press";
             settings.KeyboardHoldDuration = TimeSpan.Zero;
             settings.KeyboardPhysicalHoldMode = false;
@@ -1091,16 +1144,9 @@ namespace AutoClacker.ViewModels
             Console.WriteLine("Settings reset to default, HotkeyManager and AutomationController reinitialized.");
         }
 
-        public void UpdateStatus(string text, string color)
+        public void OnKeyDown(System.Windows.Input.KeyEventArgs e)
         {
-            StatusText = text;
-            StatusColor = color;
-            IsRunning = text == "Running";
-        }
-
-        public void OnKeyDown(KeyEventArgs e)
-        {
-            if (e.OriginalSource is TextBox)
+            if (e.OriginalSource is System.Windows.Controls.TextBox)
             {
                 return;
             }
