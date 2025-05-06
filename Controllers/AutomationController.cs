@@ -20,6 +20,7 @@ namespace AutoClacker.Controllers
         private Task currentAutomationTask;
         private readonly object automationLock = new object();
         private volatile bool isRunning;
+        private TaskCompletionSource<bool> taskCompletionSource;
 
         // SendInput related structs and constants
         [StructLayout(LayoutKind.Sequential)]
@@ -95,18 +96,22 @@ namespace AutoClacker.Controllers
                 {
                     Console.WriteLine("Automation already running. Stopping previous automation.");
                     StopAutomation("Previous automation stopped to start a new one.");
-                    try
+                    if (taskCompletionSource != null)
                     {
-                        currentAutomationTask?.Wait(TimeSpan.FromSeconds(5)); // Wait up to 5 seconds for the task to stop
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Error waiting for previous automation task to stop: {ex.Message}");
+                        try
+                        {
+                            taskCompletionSource.Task.Wait();
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Error waiting for previous automation task to stop: {ex.Message}");
+                        }
                     }
                 }
 
                 cts = new CancellationTokenSource();
                 isRunning = true;
+                taskCompletionSource = new TaskCompletionSource<bool>();
             }
 
             var token = cts.Token;
@@ -239,6 +244,7 @@ namespace AutoClacker.Controllers
                     lock (automationLock)
                     {
                         isRunning = false;
+                        taskCompletionSource?.SetResult(true);
                     }
                 }
             }, token);
@@ -272,6 +278,8 @@ namespace AutoClacker.Controllers
                 viewModel?.StopTimers();
                 viewModel?.UpdateStatus(message, "Red");
                 isRunning = false;
+                taskCompletionSource?.SetResult(true);
+                taskCompletionSource = null;
             }
         }
 
@@ -284,6 +292,7 @@ namespace AutoClacker.Controllers
                 return false;
             }
 
+            // Validate and set defaults for all properties
             if (string.IsNullOrEmpty(settings.ActionType))
             {
                 Console.WriteLine("ActionType is null or empty. Setting to default 'Mouse'.");
@@ -323,6 +332,11 @@ namespace AutoClacker.Controllers
             {
                 Console.WriteLine("Mode is null or empty. Setting to default 'Constant'.");
                 settings.Mode = "Constant";
+            }
+            if (settings.MouseHoldDuration == TimeSpan.Zero)
+            {
+                Console.WriteLine("MouseHoldDuration is zero. Setting to default '1 second'.");
+                settings.MouseHoldDuration = TimeSpan.FromSeconds(1);
             }
 
             return true;

@@ -60,7 +60,7 @@ namespace AutoClacker.ViewModels
             settings = new Settings
             {
                 ClickScope = Properties.Settings.Default.ClickScope ?? "Global",
-                TargetApplication = Properties.Settings.Default.TargetApplication,
+                TargetApplication = Properties.Settings.Default.TargetApplication ?? "",
                 ActionType = Properties.Settings.Default.ActionType ?? "Mouse",
                 MouseButton = Properties.Settings.Default.MouseButton ?? "Left",
                 ClickType = Properties.Settings.Default.ClickType ?? "Single",
@@ -458,7 +458,7 @@ namespace AutoClacker.ViewModels
             get => settings.MouseHoldDuration.Minutes;
             set
             {
-                settings.MouseHoldDuration = new TimeSpan(0, 0, value, settings.MouseHoldDuration.Seconds, settings.ClickDuration.Milliseconds);
+                settings.MouseHoldDuration = new TimeSpan(0, 0, value, settings.MouseHoldDuration.Seconds, settings.MouseHoldDuration.Milliseconds);
                 OnPropertyChanged(nameof(MouseHoldDurationMinutes));
                 Properties.Settings.Default.MouseHoldDuration = settings.MouseHoldDuration;
                 Properties.Settings.Default.Save();
@@ -978,42 +978,56 @@ namespace AutoClacker.ViewModels
                 currentAutomationTask = null;
             }
 
-            // Reset settings to default with fallbacks
+            // Reset settings to default
             Properties.Settings.Default.Reset();
-            settings.ClickScope = Properties.Settings.Default.ClickScope ?? "Global";
-            settings.TargetApplication = Properties.Settings.Default.TargetApplication;
-            settings.ActionType = Properties.Settings.Default.ActionType ?? "Mouse";
-            settings.MouseButton = Properties.Settings.Default.MouseButton ?? "Left";
-            settings.ClickType = Properties.Settings.Default.ClickType ?? "Single";
-            settings.MouseMode = Properties.Settings.Default.MouseMode ?? "Click";
-            settings.ClickMode = Properties.Settings.Default.ClickMode ?? "Constant";
-            settings.ClickDuration = Properties.Settings.Default.ClickDuration;
-            settings.MouseHoldDuration = Properties.Settings.Default.MouseHoldDuration;
-            settings.HoldMode = Properties.Settings.Default.HoldMode ?? "ConstantHold";
-            settings.MousePhysicalHoldMode = Properties.Settings.Default.MousePhysicalHoldMode;
-            settings.KeyboardKey = (Key)Properties.Settings.Default.KeyboardKey;
-            settings.KeyboardMode = Properties.Settings.Default.KeyboardMode ?? "Press";
-            settings.KeyboardHoldDuration = Properties.Settings.Default.KeyboardHoldDuration;
-            settings.KeyboardPhysicalHoldMode = Properties.Settings.Default.KeyboardPhysicalHoldMode;
-            settings.TriggerKey = (Key)Properties.Settings.Default.TriggerKey;
-            settings.TriggerKeyModifiers = (ModifierKeys)Properties.Settings.Default.TriggerKeyModifiers;
-            settings.Interval = Properties.Settings.Default.Interval;
-            settings.Mode = Properties.Settings.Default.Mode ?? "Constant";
-            settings.TotalDuration = Properties.Settings.Default.TotalDuration;
-            settings.Theme = Properties.Settings.Default.Theme ?? "Light";
-            settings.IsTopmost = Properties.Settings.Default.IsTopmost;
 
-            // Save the updated settings to ensure defaults are persisted
+            // Explicitly set all settings to defaults to avoid nulls
+            settings.ClickScope = "Global";
+            settings.TargetApplication = "";
+            settings.ActionType = "Mouse";
+            settings.MouseButton = "Left";
+            settings.ClickType = "Single";
+            settings.MouseMode = "Click";
+            settings.ClickMode = "Constant";
+            settings.ClickDuration = TimeSpan.Zero;
+            settings.MouseHoldDuration = TimeSpan.FromSeconds(1);
+            settings.HoldMode = "ConstantHold";
+            settings.MousePhysicalHoldMode = false;
+            settings.KeyboardKey = Key.None;
+            settings.KeyboardMode = "Press";
+            settings.KeyboardHoldDuration = TimeSpan.Zero;
+            settings.KeyboardPhysicalHoldMode = false;
+            settings.TriggerKey = Key.F5;
+            settings.TriggerKeyModifiers = ModifierKeys.None;
+            settings.Interval = TimeSpan.FromSeconds(2);
+            settings.Mode = "Constant";
+            settings.TotalDuration = TimeSpan.Zero;
+            settings.Theme = "Light";
+            settings.IsTopmost = false;
+
+            // Persist all settings to Properties.Settings.Default
             Properties.Settings.Default.ClickScope = settings.ClickScope;
+            Properties.Settings.Default.TargetApplication = settings.TargetApplication;
             Properties.Settings.Default.ActionType = settings.ActionType;
             Properties.Settings.Default.MouseButton = settings.MouseButton;
             Properties.Settings.Default.ClickType = settings.ClickType;
             Properties.Settings.Default.MouseMode = settings.MouseMode;
             Properties.Settings.Default.ClickMode = settings.ClickMode;
+            Properties.Settings.Default.ClickDuration = settings.ClickDuration;
+            Properties.Settings.Default.MouseHoldDuration = settings.MouseHoldDuration;
             Properties.Settings.Default.HoldMode = settings.HoldMode;
+            Properties.Settings.Default.MousePhysicalHoldMode = settings.MousePhysicalHoldMode;
+            Properties.Settings.Default.KeyboardKey = (int)settings.KeyboardKey;
             Properties.Settings.Default.KeyboardMode = settings.KeyboardMode;
+            Properties.Settings.Default.KeyboardHoldDuration = settings.KeyboardHoldDuration;
+            Properties.Settings.Default.KeyboardPhysicalHoldMode = settings.KeyboardPhysicalHoldMode;
+            Properties.Settings.Default.TriggerKey = (int)settings.TriggerKey;
+            Properties.Settings.Default.TriggerKeyModifiers = (int)settings.TriggerKeyModifiers;
+            Properties.Settings.Default.Interval = settings.Interval;
             Properties.Settings.Default.Mode = settings.Mode;
+            Properties.Settings.Default.TotalDuration = settings.TotalDuration;
             Properties.Settings.Default.Theme = settings.Theme;
+            Properties.Settings.Default.IsTopmost = settings.IsTopmost;
             Properties.Settings.Default.Save();
 
             // Reinitialize HotkeyManager and AutomationController with default settings
@@ -1027,6 +1041,7 @@ namespace AutoClacker.ViewModels
             // Reinitialize AutomationController to ensure it has the updated settings
             automationController = new AutomationController(this);
 
+            // Notify UI of all property changes
             OnPropertyChanged(nameof(ClickScope));
             OnPropertyChanged(nameof(TargetApplication));
             OnPropertyChanged(nameof(ActionType));
