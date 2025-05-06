@@ -18,12 +18,14 @@ namespace AutoClacker.Models
         private TimeSpan clickDuration = TimeSpan.Zero;
         private TimeSpan mouseHoldDuration = TimeSpan.FromSeconds(1);
         private string holdMode = "HoldDuration";
+        private bool mousePhysicalHoldMode = false;
         private int keyboardKey = 0;
         private string keyboardMode = "Press";
         private TimeSpan keyboardHoldDuration = TimeSpan.Zero;
+        private bool keyboardPhysicalHoldMode = false;
         private int triggerKey = 116;
         private int triggerKeyModifiers = 0;
-        private TimeSpan interval = TimeSpan.FromSeconds(1);
+        private TimeSpan interval = TimeSpan.FromSeconds(2);
         private string mode = "Constant";
         private TimeSpan totalDuration = TimeSpan.Zero;
         private string theme = "Light";
@@ -89,6 +91,12 @@ namespace AutoClacker.Models
             set { holdMode = value; OnPropertyChanged(nameof(HoldMode)); }
         }
 
+        public bool MousePhysicalHoldMode
+        {
+            get => mousePhysicalHoldMode;
+            set { mousePhysicalHoldMode = value; OnPropertyChanged(nameof(MousePhysicalHoldMode)); }
+        }
+
         public Key KeyboardKey
         {
             get => (Key)keyboardKey;
@@ -105,6 +113,12 @@ namespace AutoClacker.Models
         {
             get => keyboardHoldDuration;
             set { keyboardHoldDuration = value; OnPropertyChanged(nameof(KeyboardHoldDuration)); }
+        }
+
+        public bool KeyboardPhysicalHoldMode
+        {
+            get => keyboardPhysicalHoldMode;
+            set { keyboardPhysicalHoldMode = value; OnPropertyChanged(nameof(KeyboardPhysicalHoldMode)); }
         }
 
         public Key TriggerKey
