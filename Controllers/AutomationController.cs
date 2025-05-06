@@ -90,25 +90,26 @@ namespace AutoClacker.Controllers
         public async Task StartAutomation()
         {
             Console.WriteLine("StartAutomation called.");
-            lock (automationLock)
+            if (isRunning)
             {
-                if (isRunning)
+                Console.WriteLine("Automation already running. Stopping previous automation.");
+                StopAutomation("Previous automation stopped to start a new one.");
+                if (taskCompletionSource != null)
                 {
-                    Console.WriteLine("Automation already running. Stopping previous automation.");
-                    StopAutomation("Previous automation stopped to start a new one.");
-                    if (taskCompletionSource != null)
+                    try
                     {
-                        try
-                        {
-                            taskCompletionSource.Task.Wait();
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"Error waiting for previous automation task to stop: {ex.Message}");
-                        }
+                        await Task.Delay(100); // Async wait before checking task
+                        await taskCompletionSource.Task; // Wait for previous task to complete
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error waiting for previous automation task to stop: {ex.Message}");
                     }
                 }
+            }
 
+            lock (automationLock)
+            {
                 cts = new CancellationTokenSource();
                 isRunning = true;
                 taskCompletionSource = new TaskCompletionSource<bool>();
@@ -119,7 +120,7 @@ namespace AutoClacker.Controllers
             {
                 try
                 {
-                    viewModel.UpdateStatus("Running", "Green");
+                    viewModel?.UpdateStatus("Running", "Green");
 
                     if (!ValidateSettings())
                     {
@@ -127,7 +128,13 @@ namespace AutoClacker.Controllers
                         return;
                     }
 
-                    Settings settings = viewModel.CurrentSettings;
+                    Settings settings = viewModel?.CurrentSettings;
+                    if (settings == null)
+                    {
+                        StopAutomation("Settings is null");
+                        return;
+                    }
+
                     if (settings.ClickScope == "Restricted" && !ValidateTargetApplication(settings))
                     {
                         StopAutomation("Target application not active");
@@ -152,49 +159,14 @@ namespace AutoClacker.Controllers
                         }
                         else
                         {
-                            if (settings.ActionType == "Mouse" && settings.MouseMode == "Hold" && settings.HoldMode == "ConstantHold")
-                            {
-                                if (!mouseButtonHeld)
-                                {
-                                    if (settings.MousePhysicalHoldMode)
-                                        await SimulatePhysicalMouseHold(settings, token, stopwatch);
-                                    else
-                                        MouseEventDown(settings);
-                                    mouseButtonHeld = true;
-                                }
-                            }
-                            else if (settings.ActionType == "Keyboard" && settings.KeyboardMode == "Hold" && settings.KeyboardHoldDuration == TimeSpan.Zero)
-                            {
-                                if (!keyboardKeyHeld)
-                                {
-                                    if (settings.KeyboardPhysicalHoldMode)
-                                        await SimulatePhysicalKeyboardHold(settings, token, stopwatch);
-                                    else
-                                        KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 0);
-                                    keyboardKeyHeld = true;
-                                }
-                            }
-                            else
-                            {
-                                if (mouseButtonHeld)
-                                {
-                                    MouseEventUp(settings);
-                                    mouseButtonHeld = false;
-                                }
-                                if (keyboardKeyHeld)
-                                {
-                                    KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 2);
-                                    keyboardKeyHeld = false;
-                                }
-                                await PerformGlobalAction(settings, stopwatch, token);
-                            }
+                            await PerformGlobalAction(settings, stopwatch, token);
                         }
 
                         // Update remaining times
                         if (settings.ActionType == "Mouse" && settings.MouseMode == "Click" && settings.ClickMode == "Duration" && settings.ClickDuration != TimeSpan.Zero)
                         {
                             var remainingClickDuration = settings.ClickDuration - stopwatch.Elapsed;
-                            viewModel.UpdateRemainingClickDuration(remainingClickDuration);
+                            viewModel?.UpdateRemainingClickDuration(remainingClickDuration);
                             if (remainingClickDuration <= TimeSpan.Zero)
                             {
                                 shouldBreak = true;
@@ -203,7 +175,7 @@ namespace AutoClacker.Controllers
                         if (settings.ActionType == "Keyboard" && settings.KeyboardMode == "Press" && settings.Mode == "Timer" && stopwatch.Elapsed >= settings.TotalDuration)
                         {
                             var remainingPressTimer = settings.TotalDuration - stopwatch.Elapsed;
-                            viewModel.UpdateRemainingPressTimer(remainingPressTimer);
+                            viewModel?.UpdateRemainingPressTimer(remainingPressTimer);
                             if (remainingPressTimer <= TimeSpan.Zero)
                             {
                                 shouldBreak = true;
@@ -222,6 +194,7 @@ namespace AutoClacker.Controllers
                     {
                         MouseEventUp(settings);
                         mouseButtonHeld = false;
+                        keyboardKeyHeld = false; // Reset to prevent stray keyboard releases
                     }
                     if (keyboardKeyHeld)
                     {
@@ -266,12 +239,21 @@ namespace AutoClacker.Controllers
 
                 if (mouseButtonHeld)
                 {
-                    MouseEventUp(viewModel.CurrentSettings ?? new Settings { MouseButton = "Left" });
+                    MouseEventUp(viewModel?.CurrentSettings ?? new Settings { MouseButton = "Left" });
                     mouseButtonHeld = false;
+                    keyboardKeyHeld = false; // Reset to prevent stray keyboard releases
                 }
-                if (keyboardKeyHeld)
+                if (keyboardKeyHeld && viewModel?.CurrentSettings?.ActionType == "Keyboard")
                 {
-                    KeybdEvent((byte)KeyInterop.VirtualKeyFromKey((Key)Properties.Settings.Default.KeyboardKey), 2);
+                    var key = viewModel.CurrentSettings?.KeyboardKey ?? Key.Space; // Fallback to Space
+                    if (key != Key.None)
+                    {
+                        KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(key), 2);
+                    }
+                    else
+                    {
+                        Console.WriteLine("KeyboardKey is Key.None, skipping key release.");
+                    }
                     keyboardKeyHeld = false;
                 }
 
@@ -285,7 +267,7 @@ namespace AutoClacker.Controllers
 
         private bool ValidateSettings()
         {
-            var settings = viewModel.CurrentSettings;
+            var settings = viewModel?.CurrentSettings;
             if (settings == null)
             {
                 Console.WriteLine("Settings object is null.");
@@ -338,15 +320,20 @@ namespace AutoClacker.Controllers
                 Console.WriteLine("MouseHoldDuration is zero. Setting to default '1 second'.");
                 settings.MouseHoldDuration = TimeSpan.FromSeconds(1);
             }
+            if (settings.KeyboardKey == Key.None && settings.ActionType == "Keyboard")
+            {
+                Console.WriteLine("KeyboardKey is Key.None for keyboard action. Setting to default 'Space'.");
+                settings.KeyboardKey = Key.Space;
+            }
 
             return true;
         }
 
         private bool ValidateTargetApplication(Settings settings)
         {
-            var process = detector.GetProcessByName(settings.TargetApplication);
+            var process = detector.GetProcessByName(settings?.TargetApplication);
             bool isValid = process != null && !IsIconic(process.MainWindowHandle);
-            Console.WriteLine($"ValidateTargetApplication: Target={settings.TargetApplication}, IsValid={isValid}");
+            Console.WriteLine($"ValidateTargetApplication: Target={settings?.TargetApplication}, IsValid={isValid}");
             return isValid;
         }
 
@@ -362,6 +349,7 @@ namespace AutoClacker.Controllers
 
             if (settings.ActionType == "Mouse")
             {
+                keyboardKeyHeld = false; // Reset to prevent stray keyboard releases
                 if (settings.MouseMode == "Click")
                 {
                     Console.WriteLine("Performing mouse click.");
@@ -392,16 +380,7 @@ namespace AutoClacker.Controllers
                         while (stopwatch.Elapsed - holdStartTime < holdDuration && !token.IsCancellationRequested)
                         {
                             var remainingMouseHoldDuration = holdDuration - (stopwatch.Elapsed - holdStartTime);
-                            if (viewModel != null)
-                            {
-                                viewModel.UpdateRemainingMouseHoldDuration(remainingMouseHoldDuration);
-                            }
-                            else
-                            {
-                                Console.WriteLine("viewModel is null in PerformGlobalAction (Mouse Hold). Stopping automation.");
-                                StopAutomation("Error: ViewModel is null");
-                                break;
-                            }
+                            viewModel?.UpdateRemainingMouseHoldDuration(remainingMouseHoldDuration);
                             await Task.Delay(1, token);
                         }
                         MouseEventUp(settings);
@@ -432,16 +411,7 @@ namespace AutoClacker.Controllers
                         while (stopwatch.Elapsed - holdStartTime < holdDuration && !token.IsCancellationRequested)
                         {
                             var remainingHoldDuration = holdDuration - (stopwatch.Elapsed - holdStartTime);
-                            if (viewModel != null)
-                            {
-                                viewModel.UpdateRemainingHoldDuration(remainingHoldDuration);
-                            }
-                            else
-                            {
-                                Console.WriteLine("viewModel is null in PerformGlobalAction (Keyboard Hold). Stopping automation.");
-                                StopAutomation("Error: ViewModel is null");
-                                break;
-                            }
+                            viewModel?.UpdateRemainingHoldDuration(remainingHoldDuration);
                             await Task.Delay(1, token);
                         }
                         KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 2);
@@ -473,6 +443,7 @@ namespace AutoClacker.Controllers
 
             if (settings.ActionType == "Mouse")
             {
+                keyboardKeyHeld = false; // Reset to prevent stray keyboard releases
                 if (settings.MouseMode == "Click")
                 {
                     Console.WriteLine("Performing restricted mouse click.");
@@ -503,16 +474,7 @@ namespace AutoClacker.Controllers
                         while (stopwatch.Elapsed - holdStartTime < holdDuration && !token.IsCancellationRequested)
                         {
                             var remainingMouseHoldDuration = holdDuration - (stopwatch.Elapsed - holdStartTime);
-                            if (viewModel != null)
-                            {
-                                viewModel.UpdateRemainingMouseHoldDuration(remainingMouseHoldDuration);
-                            }
-                            else
-                            {
-                                Console.WriteLine("viewModel is null in PerformRestrictedAction (Mouse Hold). Stopping automation.");
-                                StopAutomation("Error: ViewModel is null");
-                                break;
-                            }
+                            viewModel?.UpdateRemainingMouseHoldDuration(remainingMouseHoldDuration);
                             await Task.Delay(1, token);
                         }
                         MouseEventUp(settings);
@@ -554,16 +516,7 @@ namespace AutoClacker.Controllers
                         while (stopwatch.Elapsed - holdStartTime < holdDuration && !token.IsCancellationRequested)
                         {
                             var remainingHoldDuration = holdDuration - (stopwatch.Elapsed - holdStartTime);
-                            if (viewModel != null)
-                            {
-                                viewModel.UpdateRemainingHoldDuration(remainingHoldDuration);
-                            }
-                            else
-                            {
-                                Console.WriteLine("viewModel is null in PerformRestrictedAction (Keyboard Hold). Stopping automation.");
-                                StopAutomation("Error: ViewModel is null");
-                                break;
-                            }
+                            viewModel?.UpdateRemainingHoldDuration(remainingHoldDuration);
                             await Task.Delay(1, token);
                         }
                         KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 2);
@@ -602,16 +555,7 @@ namespace AutoClacker.Controllers
                 if (duration.HasValue)
                 {
                     var remainingMouseHoldDuration = holdDuration - (stopwatch.Elapsed - startTime);
-                    if (viewModel != null)
-                    {
-                        viewModel.UpdateRemainingMouseHoldDuration(remainingMouseHoldDuration);
-                    }
-                    else
-                    {
-                        Console.WriteLine("viewModel is null in SimulatePhysicalMouseHold. Stopping automation.");
-                        StopAutomation("Error: ViewModel is null");
-                        break;
-                    }
+                    viewModel?.UpdateRemainingMouseHoldDuration(remainingMouseHoldDuration);
                 }
                 await Task.Delay(50, cancellationToken);
             }
@@ -620,6 +564,7 @@ namespace AutoClacker.Controllers
             {
                 MouseEventUp(settings);
             }
+            keyboardKeyHeld = false; // Reset to prevent stray keyboard releases
         }
 
         private async Task SimulatePhysicalKeyboardHold(Settings settings, CancellationToken cancellationToken, Stopwatch stopwatch, TimeSpan? duration = null)
@@ -641,16 +586,7 @@ namespace AutoClacker.Controllers
                 if (duration.HasValue)
                 {
                     var remainingHoldDuration = holdDuration - (stopwatch.Elapsed - startTime);
-                    if (viewModel != null)
-                    {
-                        viewModel.UpdateRemainingHoldDuration(remainingHoldDuration);
-                    }
-                    else
-                    {
-                        Console.WriteLine("viewModel is null in SimulatePhysicalKeyboardHold. Stopping automation.");
-                        StopAutomation("Error: ViewModel is null");
-                        break;
-                    }
+                    viewModel?.UpdateRemainingHoldDuration(remainingHoldDuration);
                 }
                 await Task.Delay(50, cancellationToken);
             }
