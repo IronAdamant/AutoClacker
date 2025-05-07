@@ -5,7 +5,7 @@
 
 This application automates mouse clicks and keyboard key presses on Windows. It can operate globally or be restricted to a specific application, making it ideal for offline tasks such as automating actions in offline games or applications.
 
-![Autoclacker Screenshot](images/autoclacker-screenshot.png)
+![autoclacker-screenshot](https://github.com/user-attachments/assets/82a51cc8-c5fc-4a07-90f1-0c984c2dbee8)
 
 ## Features
 
