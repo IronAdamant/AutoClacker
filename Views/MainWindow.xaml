@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:AutoClacker.ViewModels"
         xmlns:converters="clr-namespace:AutoClacker.Converters"
-        Title="Autoclacker" Height="650" Width="600">
+        Title="Autoclacker" Height="500" Width="975">
     <Window.Resources>
         <converters:StringToBooleanConverter x:Key="StringToBooleanConverter"/>
         <converters:StringToCommandConverter x:Key="StringToCommandConverter"/>
@@ -38,8 +38,6 @@
     </Window.Resources>
     <Grid Margin="10">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -241,5 +239,8 @@
             <Button Content="Options"/>
             <CheckBox Content="Always on Top" IsChecked="{Binding IsTopmost, UpdateSourceTrigger=PropertyChanged}" Margin="5,2"/>
         </StackPanel>
+
+        <!-- Footer Label -->
+        <Label Grid.Row="4" Grid.Column="1" Content="Creation of TrazynCache, 2025" HorizontalAlignment="Right" VerticalAlignment="Bottom" FontSize="10" Foreground="Gray" Margin="0,10,0,0"/>
     </Grid>
 </Window>
