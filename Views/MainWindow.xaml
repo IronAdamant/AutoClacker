@@ -101,11 +101,11 @@
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Visibility="{Binding IsClickDurationMode, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <Label Content="Remaining Click Duration:"/>
-                        <Label Content="{Binding RemainingClickDurationMin}"/>
+                        <Label Content="{Binding RemainingDurationMin}"/>
                         <Label Content="m"/>
-                        <Label Content="{Binding RemainingClickDurationSec}"/>
+                        <Label Content="{Binding RemainingDurationSec}"/>
                         <Label Content="s"/>
-                        <Label Content="{Binding RemainingClickDurationMs}"/>
+                        <Label Content="{Binding RemainingDurationMs}"/>
                         <Label Content="ms"/>
                     </StackPanel>
                 </StackPanel>
@@ -126,11 +126,11 @@
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Visibility="{Binding IsHoldDurationMode, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <Label Content="Remaining Mouse Hold Duration:"/>
-                        <Label Content="{Binding RemainingMouseHoldDurationMin}"/>
+                        <Label Content="{Binding RemainingDurationMin}"/>
                         <Label Content="m"/>
-                        <Label Content="{Binding RemainingMouseHoldDurationSec}"/>
+                        <Label Content="{Binding RemainingDurationSec}"/>
                         <Label Content="s"/>
-                        <Label Content="{Binding RemainingMouseHoldDurationMs}"/>
+                        <Label Content="{Binding RemainingDurationMs}"/>
                         <Label Content="ms"/>
                     </StackPanel>
                     <!-- Mouse Physical Hold Mode Toggle -->
@@ -169,11 +169,11 @@
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Visibility="{Binding IsTimerMode, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <Label Content="Remaining Press Timer:"/>
-                        <Label Content="{Binding RemainingPressTimerMin}"/>
+                        <Label Content="{Binding RemainingDurationMin}"/>
                         <Label Content="m"/>
-                        <Label Content="{Binding RemainingPressTimerSec}"/>
+                        <Label Content="{Binding RemainingDurationSec}"/>
                         <Label Content="s"/>
-                        <Label Content="{Binding RemainingPressTimerMs}"/>
+                        <Label Content="{Binding RemainingDurationMs}"/>
                         <Label Content="ms"/>
                     </StackPanel>
                 </StackPanel>
@@ -194,11 +194,11 @@
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Visibility="{Binding IsKeyboardHoldDurationMode, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <Label Content="Remaining Keyboard Hold Duration:"/>
-                        <Label Content="{Binding RemainingHoldDurationMin}"/>
+                        <Label Content="{Binding RemainingDurationMin}"/>
                         <Label Content="m"/>
-                        <Label Content="{Binding RemainingHoldDurationSec}"/>
+                        <Label Content="{Binding RemainingDurationSec}"/>
                         <Label Content="s"/>
-                        <Label Content="{Binding RemainingHoldDurationMs}"/>
+                        <Label Content="{Binding RemainingDurationMs}"/>
                         <Label Content="ms"/>
                     </StackPanel>
                     <!-- Keyboard Physical Hold Mode Toggle -->

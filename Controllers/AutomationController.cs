@@ -98,8 +98,8 @@ namespace AutoClacker.Controllers
                 {
                     try
                     {
-                        await Task.Delay(100); // Async wait before checking task
-                        await taskCompletionSource.Task; // Wait for previous task to complete
+                        await Task.Delay(100);
+                        await taskCompletionSource.Task;
                     }
                     catch (Exception ex)
                     {
@@ -162,21 +162,13 @@ namespace AutoClacker.Controllers
                             await PerformGlobalAction(settings, stopwatch, token);
                         }
 
-                        // Update remaining times for duration-based modes
-                        if (settings.ActionType == "Mouse" && settings.MouseMode == "Click" && settings.ClickMode == "Duration" && settings.ClickDuration != TimeSpan.Zero)
+                        // Check duration-based modes
+                        if ((settings.ActionType == "Mouse" && settings.MouseMode == "Click" && settings.ClickMode == "Duration") ||
+                            (settings.ActionType == "Mouse" && settings.MouseMode == "Hold" && settings.HoldMode == "HoldDuration") ||
+                            (settings.ActionType == "Keyboard" && settings.KeyboardMode == "Press" && settings.Mode == "Timer") ||
+                            (settings.ActionType == "Keyboard" && settings.KeyboardMode == "Hold" && settings.KeyboardHoldDuration != TimeSpan.Zero))
                         {
-                            var remainingClickDuration = settings.ClickDuration - stopwatch.Elapsed;
-                            viewModel?.UpdateRemainingClickDuration(remainingClickDuration);
-                            if (remainingClickDuration <= TimeSpan.Zero)
-                            {
-                                shouldBreak = true;
-                            }
-                        }
-                        if (settings.ActionType == "Keyboard" && settings.KeyboardMode == "Press" && settings.Mode == "Timer" && stopwatch.Elapsed >= settings.TotalDuration)
-                        {
-                            var remainingPressTimer = settings.TotalDuration - stopwatch.Elapsed;
-                            viewModel?.UpdateRemainingPressTimer(remainingPressTimer);
-                            if (remainingPressTimer <= TimeSpan.Zero)
+                            if (viewModel.GetRemainingDuration() <= TimeSpan.Zero)
                             {
                                 shouldBreak = true;
                             }
@@ -194,7 +186,7 @@ namespace AutoClacker.Controllers
                     {
                         MouseEventUp(settings);
                         mouseButtonHeld = false;
-                        keyboardKeyHeld = false; // Reset to prevent stray keyboard releases
+                        keyboardKeyHeld = false;
                     }
                     if (keyboardKeyHeld)
                     {
@@ -241,11 +233,11 @@ namespace AutoClacker.Controllers
                 {
                     MouseEventUp(viewModel?.CurrentSettings ?? new Settings { MouseButton = "Left" });
                     mouseButtonHeld = false;
-                    keyboardKeyHeld = false; // Reset to prevent stray keyboard releases
+                    keyboardKeyHeld = false;
                 }
                 if (keyboardKeyHeld && viewModel?.CurrentSettings?.ActionType == "Keyboard")
                 {
-                    var key = viewModel.CurrentSettings?.KeyboardKey ?? Key.Space; // Fallback to Space
+                    var key = viewModel.CurrentSettings?.KeyboardKey ?? Key.Space;
                     if (key != Key.None)
                     {
                         KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(key), 2);
@@ -263,7 +255,7 @@ namespace AutoClacker.Controllers
                 taskCompletionSource?.SetResult(true);
                 taskCompletionSource = null;
             }
-            await Task.Delay(100); // Ensure cleanup completes
+            await Task.Delay(100);
         }
 
         private bool ValidateSettings()
@@ -275,7 +267,6 @@ namespace AutoClacker.Controllers
                 return false;
             }
 
-            // Validate and set defaults for all properties
             if (string.IsNullOrEmpty(settings.ActionType))
             {
                 Console.WriteLine("ActionType is null or empty. Setting to default 'Mouse'.");
@@ -350,7 +341,7 @@ namespace AutoClacker.Controllers
 
             if (settings.ActionType == "Mouse")
             {
-                keyboardKeyHeld = false; // Reset to prevent stray keyboard releases
+                keyboardKeyHeld = false;
                 if (settings.MouseMode == "Click")
                 {
                     Console.WriteLine("Performing mouse click.");
@@ -377,8 +368,7 @@ namespace AutoClacker.Controllers
                     {
                         TimeSpan holdDuration = settings.MouseHoldDuration.TotalMilliseconds < 500 ? TimeSpan.FromMilliseconds(500) : settings.MouseHoldDuration;
                         MouseEventDown(settings);
-                        var holdStartTime = stopwatch.Elapsed;
-                        await Task.Delay(holdDuration, token); // Wait for the full duration
+                        await Task.Delay(holdDuration, token);
                         if (!token.IsCancellationRequested)
                         {
                             MouseEventUp(settings);
@@ -421,8 +411,7 @@ namespace AutoClacker.Controllers
                     {
                         TimeSpan holdDuration = settings.KeyboardHoldDuration.TotalMilliseconds < 500 ? TimeSpan.FromMilliseconds(500) : settings.KeyboardHoldDuration;
                         KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 0);
-                        var holdStartTime = stopwatch.Elapsed;
-                        await Task.Delay(holdDuration, token); // Wait for the full duration
+                        await Task.Delay(holdDuration, token);
                         if (!token.IsCancellationRequested)
                         {
                             KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 2);
@@ -470,7 +459,7 @@ namespace AutoClacker.Controllers
 
             if (settings.ActionType == "Mouse")
             {
-                keyboardKeyHeld = false; // Reset to prevent stray keyboard releases
+                keyboardKeyHeld = false;
                 if (settings.MouseMode == "Click")
                 {
                     Console.WriteLine("Performing restricted mouse click.");
@@ -497,8 +486,7 @@ namespace AutoClacker.Controllers
                     {
                         TimeSpan holdDuration = settings.MouseHoldDuration.TotalMilliseconds < 500 ? TimeSpan.FromMilliseconds(500) : settings.MouseHoldDuration;
                         MouseEventDown(settings);
-                        var holdStartTime = stopwatch.Elapsed;
-                        await Task.Delay(holdDuration, token); // Wait for the full duration
+                        await Task.Delay(holdDuration, token);
                         if (!token.IsCancellationRequested)
                         {
                             MouseEventUp(settings);
@@ -537,8 +525,7 @@ namespace AutoClacker.Controllers
                     {
                         TimeSpan holdDuration = settings.KeyboardHoldDuration.TotalMilliseconds < 500 ? TimeSpan.FromMilliseconds(500) : settings.KeyboardHoldDuration;
                         KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 0);
-                        var holdStartTime = stopwatch.Elapsed;
-                        await Task.Delay(holdDuration, token); // Wait for the full duration
+                        await Task.Delay(holdDuration, token);
                         if (!token.IsCancellationRequested)
                         {
                             KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 2);
@@ -569,17 +556,11 @@ namespace AutoClacker.Controllers
                 return;
             }
 
-            var startTime = stopwatch.Elapsed;
             TimeSpan holdDuration = duration ?? TimeSpan.MaxValue;
 
-            while (!cancellationToken.IsCancellationRequested && (stopwatch.Elapsed - startTime) < holdDuration)
+            while (!cancellationToken.IsCancellationRequested && viewModel.GetRemainingDuration() > TimeSpan.Zero)
             {
                 MouseEventDown(settings);
-                if (duration.HasValue)
-                {
-                    var remainingMouseHoldDuration = holdDuration - (stopwatch.Elapsed - startTime);
-                    viewModel?.UpdateRemainingMouseHoldDuration(remainingMouseHoldDuration);
-                }
                 await Task.Delay(50, cancellationToken);
             }
 
@@ -587,7 +568,7 @@ namespace AutoClacker.Controllers
             {
                 MouseEventUp(settings);
             }
-            keyboardKeyHeld = false; // Reset to prevent stray keyboard releases
+            keyboardKeyHeld = false;
         }
 
         private async Task SimulatePhysicalKeyboardHold(Settings settings, CancellationToken cancellationToken, Stopwatch stopwatch, TimeSpan? duration = null)
@@ -600,17 +581,11 @@ namespace AutoClacker.Controllers
                 return;
             }
 
-            var startTime = stopwatch.Elapsed;
             TimeSpan holdDuration = duration ?? TimeSpan.MaxValue;
 
-            while (!cancellationToken.IsCancellationRequested && (stopwatch.Elapsed - startTime) < holdDuration)
+            while (!cancellationToken.IsCancellationRequested && viewModel.GetRemainingDuration() > TimeSpan.Zero)
             {
                 KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 0);
-                if (duration.HasValue)
-                {
-                    var remainingHoldDuration = holdDuration - (stopwatch.Elapsed - startTime);
-                    viewModel?.UpdateRemainingHoldDuration(remainingHoldDuration);
-                }
                 await Task.Delay(50, cancellationToken);
             }
 
