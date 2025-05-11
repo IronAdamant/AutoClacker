@@ -5,7 +5,7 @@
 
 AutoClacker is a Windows application that automates mouse clicks and keyboard key presses. It supports global or application-restricted modes, making it suitable for offline tasks like automating actions in games or applications.
 
-![AutoClacker Screenshot](Images/AutoClacker_Not_Running.png)
+![AutoClacker Screenshot](../Images/AutoClacker_Not_Running.png)
 
 ## Features
 
