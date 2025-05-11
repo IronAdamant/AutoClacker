@@ -162,7 +162,7 @@ namespace AutoClacker.Controllers
                             await PerformGlobalAction(settings, stopwatch, token);
                         }
 
-                        // Check duration-based modes
+                        // Check duration-based modes only
                         if ((settings.ActionType == "Mouse" && settings.MouseMode == "Click" && settings.ClickMode == "Duration") ||
                             (settings.ActionType == "Mouse" && settings.MouseMode == "Hold" && settings.HoldMode == "HoldDuration") ||
                             (settings.ActionType == "Keyboard" && settings.KeyboardMode == "Press" && settings.Mode == "Timer") ||
@@ -558,7 +558,7 @@ namespace AutoClacker.Controllers
 
             TimeSpan holdDuration = duration ?? TimeSpan.MaxValue;
 
-            while (!cancellationToken.IsCancellationRequested && viewModel.GetRemainingDuration() > TimeSpan.Zero)
+            while (!cancellationToken.IsCancellationRequested && (duration == null || viewModel.GetRemainingDuration() > TimeSpan.Zero))
             {
                 MouseEventDown(settings);
                 await Task.Delay(50, cancellationToken);
@@ -583,7 +583,7 @@ namespace AutoClacker.Controllers
 
             TimeSpan holdDuration = duration ?? TimeSpan.MaxValue;
 
-            while (!cancellationToken.IsCancellationRequested && viewModel.GetRemainingDuration() > TimeSpan.Zero)
+            while (!cancellationToken.IsCancellationRequested && (duration == null || viewModel.GetRemainingDuration() > TimeSpan.Zero))
             {
                 KeybdEvent((byte)KeyInterop.VirtualKeyFromKey(settings.KeyboardKey), 0);
                 await Task.Delay(50, cancellationToken);
