@@ -1,46 +1,45 @@
-# Autoclacker
+# AutoClacker
 
 ## Version
-1.0.0.0 (as of May 07, 2025)
+1.0.0.1 (as of May 11, 2025)
 
-This application automates mouse clicks and keyboard key presses on Windows. It can operate globally or be restricted to a specific application, making it ideal for offline tasks such as automating actions in offline games or applications.
+AutoClacker is a Windows application that automates mouse clicks and keyboard key presses. It supports global or application-restricted modes, making it suitable for offline tasks like automating actions in games or applications.
 
-![autoclacker-screenshot](https://github.com/user-attachments/assets/82a51cc8-c5fc-4a07-90f1-0c984c2dbee8)
+![AutoClacker Screenshot](Images/AutoClacker_Not_Running.png)
 
 ## Features
 
-- **Global or Restricted Mode**: Choose to automate actions across the entire system or limit them to a specific application.
-- **Mouse and Keyboard Automation**: Configure actions for mouse clicks or keyboard key presses, with options to hold keys or buttons.
-- **Customizable Settings**: Adjust intervals, durations, and hotkeys to suit your needs.
-- **Persistent Settings**: Settings are saved for easy persistence between sessions.
-- **User-Friendly GUI**: A graphical interface makes it easy to configure and control the automation.
+- **Global or Restricted Mode**: Automate actions system-wide or limit them to a specific application.
+- **Mouse and Keyboard Automation**: Configure mouse clicks (single/double, click/hold) or keyboard key presses (press/hold).
+- **Customizable Settings**: Adjust intervals, durations, and hotkeys via a user-friendly GUI.
+- **Persistent Settings**: Settings are saved for consistency across sessions.
+- **Hotkey Support**: Toggle automation with a configurable hotkey (default: F5).
 
 ## Installation
 
 1. Clone or download the repository to your local machine.
-2. Open the solution in Visual Studio (or your preferred C# IDE).
-3. Build the project to ensure all dependencies are resolved.
-4. Run the application from the IDE or by executing the compiled executable.
+2. Open the solution (`AutoClacker.sln`) in Visual Studio 2022 or a compatible C# IDE.
+3. Build the project to resolve dependencies.
+4. Run the application from the IDE or the compiled executable (`bin\Debug\AutoClacker.exe`).
 
 ## Usage
 
-1. **Select Scope**: Choose between "Global" or "Restricted to Application" mode.
-2. **Configure Actions**: Set up mouse or keyboard actions, including hold durations if applicable.
-3. **Set Toggle Key**: Define a hotkey to start/stop the automation (default: F5).
-4. **Adjust Speed and Duration**: Customize the interval between actions ("Speed") and the total duration of automation ("Mode"). Tooltips in the UI explain the difference between these settings.
-5. **Start/Stop Automation**: Use the toggle key (default: F5) to start or stop the automation.
+1. **Select Scope**: Choose "Global" or "Restricted to Application" mode.
+2. **Configure Actions**: Set mouse (button, click type, mode) or keyboard (key, mode) actions.
+3. **Set Toggle Key**: Define a hotkey to start/stop automation (default: F5).
+4. **Adjust Speed and Duration**: Customize the interval between actions and total duration (if applicable).
+5. **Start/Stop Automation**: Press the toggle key to begin or end automation.
 
 ## Project Structure
 
-- `MainForm.cs`: The main GUI form that coordinates all components.
-- `Models/Settings.cs`: Defines the configuration settings for the application.
-- `Utilities/SettingsManager.cs`: Handles loading and saving settings.
+- `Views/MainWindow.xaml`: Main GUI for configuring and controlling automation.
+- `Models/Settings.cs`: Defines configuration settings.
+- `Utilities/SettingsManager.cs`: Manages loading and saving settings.
 - `Utilities/ApplicationDetector.cs`: Detects running applications for restricted mode.
-- `Utilities/HotkeyManager.cs`: Manages global hotkeys.
-- `Utilities/KeyCaptureDialog.cs`: Dialog for capturing keyboard input.
-- `Utilities/OptionsDialog.cs`: Dialog for additional options like theme selection.
-- `Controllers/AutomationController.cs`: Controls the automation logic.
+- `Utilities/HotkeyManager.cs`: Handles global hotkeys.
+- `Controllers/AutomationController.cs`: Core logic for mouse/keyboard automation.
+- `ViewModels/MainViewModel.cs`: Coordinates UI and automation logic.
 
 ## License
 
-This project is licensed under the MIT License. See the `Docs/LICENSE.txt` file for details.
+Licensed under the MIT License. See `Docs/LICENSE.txt` for details.
