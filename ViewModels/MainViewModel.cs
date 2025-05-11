@@ -30,24 +30,11 @@ namespace AutoClacker.ViewModels
         private Window window;
         private TaskCompletionSource<bool> automationTcs;
         private readonly DispatcherTimer uiUpdateTimer;
-
-        private TimeSpan remainingClickDuration;
-        private TimeSpan remainingPressTimer;
-        private TimeSpan remainingHoldDuration;
-        private TimeSpan remainingMouseHoldDuration;
-
-        private int remainingClickDurationMin;
-        private int remainingClickDurationSec;
-        private int remainingClickDurationMs;
-        private int remainingPressTimerMin;
-        private int remainingPressTimerSec;
-        private int remainingPressTimerMs;
-        private int remainingHoldDurationMin;
-        private int remainingHoldDurationSec;
-        private int remainingHoldDurationMs;
-        private int remainingMouseHoldDurationMin;
-        private int remainingMouseHoldDurationSec;
-        private int remainingMouseHoldDurationMs;
+        private TimeSpan remainingDuration;
+        private int remainingDurationMin;
+        private int remainingDurationSec;
+        private int remainingDurationMs;
+        private DateTime? durationStartTime;
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -93,7 +80,7 @@ namespace AutoClacker.ViewModels
             RefreshApplicationsCommand = new RelayCommand(RefreshApplications);
 
             uiUpdateTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
-            uiUpdateTimer.Tick += (s, e) => UpdateRemainingTimesDisplay();
+            uiUpdateTimer.Tick += (s, e) => UpdateRemainingDurationDisplay();
 
             OnPropertyChanged(nameof(TriggerKeyDisplay));
             OnPropertyChanged(nameof(KeyboardKeyDisplay));
@@ -124,146 +111,70 @@ namespace AutoClacker.ViewModels
             window.Topmost = settings.IsTopmost;
         }
 
-        public async void UpdateRemainingClickDuration(TimeSpan remaining)
+        public TimeSpan GetRemainingDuration()
         {
-            remainingClickDuration = remaining;
-            if (remaining <= TimeSpan.Zero)
+            return remainingDuration;
+        }
+
+        private void UpdateRemainingDurationDisplay()
+        {
+            if (durationStartTime.HasValue)
             {
-                remainingClickDuration = TimeSpan.Zero;
-                await ManageAutomationAsync(false, "Click Duration completed");
+                var elapsed = DateTime.Now - durationStartTime.Value;
+                remainingDuration = GetActiveDuration() - elapsed;
+                if (remainingDuration <= TimeSpan.Zero)
+                {
+                    remainingDuration = TimeSpan.Zero;
+                    _ = ManageAutomationAsync(false, "Duration completed");
+                }
             }
-            UpdateRemainingTimesDisplay();
+
+            RemainingDurationMin = remainingDuration.Minutes;
+            RemainingDurationSec = remainingDuration.Seconds;
+            RemainingDurationMs = remainingDuration.Milliseconds;
+
+            OnPropertyChanged(nameof(RemainingDurationMin));
+            OnPropertyChanged(nameof(RemainingDurationSec));
+            OnPropertyChanged(nameof(RemainingDurationMs));
         }
 
-        public async void UpdateRemainingPressTimer(TimeSpan remaining)
+        private TimeSpan GetActiveDuration()
         {
-            remainingPressTimer = remaining;
-            if (remaining <= TimeSpan.Zero)
+            if (settings.ActionType == "Mouse" && settings.MouseMode == "Click" && settings.ClickMode == "Duration")
             {
-                remainingPressTimer = TimeSpan.Zero;
-                await ManageAutomationAsync(false, "Press Timer completed");
+                return settings.ClickDuration;
             }
-            UpdateRemainingTimesDisplay();
-        }
-
-        public async void UpdateRemainingHoldDuration(TimeSpan remaining)
-        {
-            remainingHoldDuration = remaining;
-            if (remaining <= TimeSpan.Zero)
+            if (settings.ActionType == "Mouse" && settings.MouseMode == "Hold" && settings.HoldMode == "HoldDuration")
             {
-                remainingHoldDuration = TimeSpan.Zero;
-                await ManageAutomationAsync(false, "Hold Duration completed");
+                return settings.MouseHoldDuration;
             }
-            UpdateRemainingTimesDisplay();
-        }
-
-        public async void UpdateRemainingMouseHoldDuration(TimeSpan remaining)
-        {
-            remainingMouseHoldDuration = remaining;
-            if (remaining <= TimeSpan.Zero)
+            if (settings.ActionType == "Keyboard" && settings.KeyboardMode == "Hold" && settings.KeyboardHoldDuration != TimeSpan.Zero)
             {
-                remainingMouseHoldDuration = TimeSpan.Zero;
-                await ManageAutomationAsync(false, "Mouse Hold Duration completed");
+                return settings.KeyboardHoldDuration;
             }
-            UpdateRemainingTimesDisplay();
+            if (settings.ActionType == "Keyboard" && settings.KeyboardMode == "Press" && settings.Mode == "Timer")
+            {
+                return settings.TotalDuration;
+            }
+            return TimeSpan.Zero;
         }
 
-        private void UpdateRemainingTimesDisplay()
+        public int RemainingDurationMin
         {
-            RemainingClickDurationMin = remainingClickDuration.Minutes;
-            RemainingClickDurationSec = remainingClickDuration.Seconds;
-            RemainingClickDurationMs = remainingClickDuration.Milliseconds;
-
-            RemainingPressTimerMin = remainingPressTimer.Minutes;
-            RemainingPressTimerSec = remainingPressTimer.Seconds;
-            RemainingPressTimerMs = remainingPressTimer.Milliseconds;
-
-            RemainingHoldDurationMin = remainingHoldDuration.Minutes;
-            RemainingHoldDurationSec = remainingHoldDuration.Seconds;
-            RemainingHoldDurationMs = remainingHoldDuration.Milliseconds;
-
-            RemainingMouseHoldDurationMin = remainingMouseHoldDuration.Minutes;
-            RemainingMouseHoldDurationSec = remainingMouseHoldDuration.Seconds;
-            RemainingMouseHoldDurationMs = remainingMouseHoldDuration.Milliseconds;
-
-            OnPropertyChanged(nameof(RemainingHoldDurationMin));
-            OnPropertyChanged(nameof(RemainingHoldDurationSec));
-            OnPropertyChanged(nameof(RemainingHoldDurationMs));
-            OnPropertyChanged(nameof(RemainingMouseHoldDurationMin));
-            OnPropertyChanged(nameof(RemainingMouseHoldDurationSec));
-            OnPropertyChanged(nameof(RemainingMouseHoldDurationMs));
+            get => remainingDurationMin;
+            private set { remainingDurationMin = value; OnPropertyChanged(nameof(RemainingDurationMin)); }
         }
 
-        public int RemainingClickDurationMin
+        public int RemainingDurationSec
         {
-            get => remainingClickDurationMin;
-            private set { remainingClickDurationMin = value; OnPropertyChanged(nameof(RemainingClickDurationMin)); }
+            get => remainingDurationSec;
+            private set { remainingDurationSec = value; OnPropertyChanged(nameof(RemainingDurationSec)); }
         }
 
-        public int RemainingClickDurationSec
+        public int RemainingDurationMs
         {
-            get => remainingClickDurationSec;
-            private set { remainingClickDurationSec = value; OnPropertyChanged(nameof(RemainingClickDurationSec)); }
-        }
-
-        public int RemainingClickDurationMs
-        {
-            get => remainingClickDurationMs;
-            private set { remainingClickDurationMs = value; OnPropertyChanged(nameof(RemainingClickDurationMs)); }
-        }
-
-        public int RemainingPressTimerMin
-        {
-            get => remainingPressTimerMin;
-            private set { remainingPressTimerMin = value; OnPropertyChanged(nameof(RemainingPressTimerMin)); }
-        }
-
-        public int RemainingPressTimerSec
-        {
-            get => remainingPressTimerSec;
-            private set { remainingPressTimerSec = value; OnPropertyChanged(nameof(RemainingPressTimerSec)); }
-        }
-
-        public int RemainingPressTimerMs
-        {
-            get => remainingPressTimerMs;
-            private set { remainingPressTimerMs = value; OnPropertyChanged(nameof(RemainingPressTimerMs)); }
-        }
-
-        public int RemainingHoldDurationMin
-        {
-            get => remainingHoldDurationMin;
-            private set { remainingHoldDurationMin = value; OnPropertyChanged(nameof(RemainingHoldDurationMin)); }
-        }
-
-        public int RemainingHoldDurationSec
-        {
-            get => remainingHoldDurationSec;
-            private set { remainingHoldDurationSec = value; OnPropertyChanged(nameof(RemainingHoldDurationSec)); }
-        }
-
-        public int RemainingHoldDurationMs
-        {
-            get => remainingHoldDurationMs;
-            private set { remainingHoldDurationMs = value; OnPropertyChanged(nameof(RemainingHoldDurationMs)); }
-        }
-
-        public int RemainingMouseHoldDurationMin
-        {
-            get => remainingMouseHoldDurationMin;
-            private set { remainingMouseHoldDurationMin = value; OnPropertyChanged(nameof(RemainingMouseHoldDurationMin)); }
-        }
-
-        public int RemainingMouseHoldDurationSec
-        {
-            get => remainingMouseHoldDurationSec;
-            private set { remainingMouseHoldDurationSec = value; OnPropertyChanged(nameof(RemainingMouseHoldDurationSec)); }
-        }
-
-        public int RemainingMouseHoldDurationMs
-        {
-            get => remainingMouseHoldDurationMs;
-            private set { remainingMouseHoldDurationMs = value; OnPropertyChanged(nameof(RemainingMouseHoldDurationMs)); }
+            get => remainingDurationMs;
+            private set { remainingDurationMs = value; OnPropertyChanged(nameof(RemainingDurationMs)); }
         }
 
         public void StartTimers()
@@ -275,23 +186,8 @@ namespace AutoClacker.ViewModels
                 return;
             }
 
-            if (settings.ActionType == "Mouse" && settings.MouseMode == "Click" && settings.ClickMode == "Duration")
-            {
-                remainingClickDuration = settings.ClickDuration;
-            }
-            if (settings.ActionType == "Keyboard" && settings.KeyboardMode == "Press" && settings.Mode == "Timer")
-            {
-                remainingPressTimer = settings.TotalDuration;
-            }
-            if (settings.ActionType == "Keyboard" && settings.KeyboardMode == "Hold" && settings.KeyboardHoldDuration != TimeSpan.Zero)
-            {
-                remainingHoldDuration = settings.KeyboardHoldDuration;
-            }
-            if (settings.ActionType == "Mouse" && settings.MouseMode == "Hold" && settings.HoldMode == "HoldDuration")
-            {
-                remainingMouseHoldDuration = settings.MouseHoldDuration;
-            }
-
+            remainingDuration = GetActiveDuration();
+            durationStartTime = DateTime.Now;
             uiUpdateTimer.Start();
             Console.WriteLine("UI update timer started.");
         }
@@ -300,23 +196,11 @@ namespace AutoClacker.ViewModels
         {
             Console.WriteLine("StopTimers called.");
             uiUpdateTimer.Stop();
-            remainingClickDuration = TimeSpan.Zero;
-            remainingPressTimer = TimeSpan.Zero;
-            remainingHoldDuration = TimeSpan.Zero;
-            remainingMouseHoldDuration = TimeSpan.Zero;
-
-            RemainingClickDurationMin = 0;
-            RemainingClickDurationSec = 0;
-            RemainingClickDurationMs = 0;
-            RemainingPressTimerMin = 0;
-            RemainingPressTimerSec = 0;
-            RemainingPressTimerMs = 0;
-            RemainingHoldDurationMin = 0;
-            RemainingHoldDurationSec = 0;
-            RemainingHoldDurationMs = 0;
-            RemainingMouseHoldDurationMin = 0;
-            RemainingMouseHoldDurationSec = 0;
-            RemainingMouseHoldDurationMs = 0;
+            remainingDuration = TimeSpan.Zero;
+            durationStartTime = null;
+            RemainingDurationMin = 0;
+            RemainingDurationSec = 0;
+            RemainingDurationMs = 0;
         }
 
         public void UpdateStatus(string text, string color)
@@ -850,10 +734,9 @@ namespace AutoClacker.ViewModels
                 automationTcs = new TaskCompletionSource<bool>();
                 StartTimers();
                 UpdateStatus("Running", "Green");
-                var task = automationController.StartAutomation();
                 try
                 {
-                    await task;
+                    await automationController.StartAutomation();
                     automationTcs.TrySetResult(true);
                 }
                 catch (Exception ex)
