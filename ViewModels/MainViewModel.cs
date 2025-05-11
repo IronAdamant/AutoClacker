@@ -127,15 +127,15 @@ namespace AutoClacker.ViewModels
                     remainingDuration = TimeSpan.Zero;
                     _ = ManageAutomationAsync(false, "Duration completed");
                 }
+
+                RemainingDurationMin = remainingDuration.Minutes;
+                RemainingDurationSec = remainingDuration.Seconds;
+                RemainingDurationMs = remainingDuration.Milliseconds;
+
+                OnPropertyChanged(nameof(RemainingDurationMin));
+                OnPropertyChanged(nameof(RemainingDurationSec));
+                OnPropertyChanged(nameof(RemainingDurationMs));
             }
-
-            RemainingDurationMin = remainingDuration.Minutes;
-            RemainingDurationSec = remainingDuration.Seconds;
-            RemainingDurationMs = remainingDuration.Milliseconds;
-
-            OnPropertyChanged(nameof(RemainingDurationMin));
-            OnPropertyChanged(nameof(RemainingDurationSec));
-            OnPropertyChanged(nameof(RemainingDurationMs));
         }
 
         private TimeSpan GetActiveDuration()
@@ -186,10 +186,21 @@ namespace AutoClacker.ViewModels
                 return;
             }
 
-            remainingDuration = GetActiveDuration();
-            durationStartTime = DateTime.Now;
-            uiUpdateTimer.Start();
-            Console.WriteLine("UI update timer started.");
+            // Only initialize timer for duration-based modes
+            if ((settings.ActionType == "Mouse" && settings.MouseMode == "Click" && settings.ClickMode == "Duration") ||
+                (settings.ActionType == "Mouse" && settings.MouseMode == "Hold" && settings.HoldMode == "HoldDuration") ||
+                (settings.ActionType == "Keyboard" && settings.KeyboardMode == "Hold" && settings.KeyboardHoldDuration != TimeSpan.Zero) ||
+                (settings.ActionType == "Keyboard" && settings.KeyboardMode == "Press" && settings.Mode == "Timer"))
+            {
+                remainingDuration = GetActiveDuration();
+                durationStartTime = DateTime.Now;
+                uiUpdateTimer.Start();
+                Console.WriteLine("UI update timer started.");
+            }
+            else
+            {
+                Console.WriteLine("Constant mode detected, skipping timer initialization.");
+            }
         }
 
         public void StopTimers()
@@ -301,7 +312,7 @@ namespace AutoClacker.ViewModels
                 OnPropertyChanged(nameof(IsHoldDurationMode));
                 Properties.Settings.Default.MouseMode = value;
                 Properties.Settings.Default.Save();
-                Console.WriteLine($"MouseMode changed to: {value}, IsClickModeVisible: {IsClickModeVisible}, IsHoldModeVisible: {IsHoldModeVisible}");
+                Console.WriteLine($"WSGI.MouseMode changed to: {value}, IsClickModeVisible: {IsClickModeVisible}, IsHoldModeVisible: {IsHoldModeVisible}");
             }
         }
 
