@@ -1,0 +1,13 @@
+﻿<Application x:Class="AutoClacker.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:converters="clr-namespace:AutoClacker.Converters"
+             StartupUri="Views/MainWindow.xaml">
+    <Application.Resources>
+        <converters:StringToBooleanConverter x:Key="StringToBooleanConverter"/>
+        <converters:StringToCommandConverter x:Key="StringToCommandConverter"/>
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+        <converters:StringToIntConverter x:Key="StringToIntConverter"/>
+    </Application.Resources>
+</Application>

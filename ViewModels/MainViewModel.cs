@@ -8,6 +8,7 @@ using System.Windows.Threading;
 using AutoClacker.Models;
 using AutoClacker.Controllers;
 using AutoClacker.Utilities;
+using AutoClacker.Views;
 using System.Threading.Tasks;
 
 namespace AutoClacker.ViewModels
@@ -78,6 +79,7 @@ namespace AutoClacker.ViewModels
             SetConstantCommand = new RelayCommand(SetConstant);
             SetHoldDurationCommand = new RelayCommand(SetHoldDuration);
             RefreshApplicationsCommand = new RelayCommand(RefreshApplications);
+            OpenOptionsCommand = new RelayCommand(async o => await OpenOptionsDialog());
 
             uiUpdateTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
             uiUpdateTimer.Tick += (s, e) => UpdateRemainingDurationDisplay();
@@ -312,7 +314,7 @@ namespace AutoClacker.ViewModels
                 OnPropertyChanged(nameof(IsHoldDurationMode));
                 Properties.Settings.Default.MouseMode = value;
                 Properties.Settings.Default.Save();
-                Console.WriteLine($"WSGI.MouseMode changed to: {value}, IsClickModeVisible: {IsClickModeVisible}, IsHoldModeVisible: {IsHoldModeVisible}");
+                Console.WriteLine($"MouseMode changed to: {value}, IsClickModeVisible: {IsClickModeVisible}, IsHoldModeVisible: {IsHoldModeVisible}");
             }
         }
 
@@ -695,6 +697,7 @@ namespace AutoClacker.ViewModels
         public RelayCommand SetConstantCommand { get; }
         public RelayCommand SetHoldDurationCommand { get; }
         public RelayCommand RefreshApplicationsCommand { get; }
+        public RelayCommand OpenOptionsCommand { get; }
 
         private async Task ManageAutomationAsync(bool start, string stopMessage = null)
         {
@@ -867,6 +870,18 @@ namespace AutoClacker.ViewModels
                 Console.WriteLine($"Error in SetKey: {ex.Message}");
                 System.Windows.MessageBox.Show($"Failed to set key: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        private async Task OpenOptionsDialog()
+        {
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                var dialog = new OptionsDialog(this)
+                {
+                    Owner = System.Windows.Application.Current.MainWindow
+                };
+                dialog.ShowDialog();
+            });
         }
 
         private void SetConstant(object _)
