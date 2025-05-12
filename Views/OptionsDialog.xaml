@@ -18,7 +18,7 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         <!-- Custom Title Bar -->
-        <Border Grid.Row="0" Style="{StaticResource TitleBar}">
+        <Border Grid.Row="0" Style="{StaticResource TitleBar}" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>

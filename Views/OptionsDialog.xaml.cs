@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using System.Windows.Input;
 using AutoClacker.ViewModels;
 
 namespace AutoClacker.Views
@@ -51,6 +52,14 @@ namespace AutoClacker.Views
             }
             DialogResult = false;
             Close();
+        }
+
+        private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == MouseButton.Left)
+            {
+                DragMove();
+            }
         }
     }
 }

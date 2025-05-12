@@ -20,7 +20,7 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <!-- Custom Title Bar -->
-        <Border Grid.Row="0" Style="{StaticResource TitleBar}">
+        <Border Grid.Row="0" Style="{StaticResource TitleBar}" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -188,7 +188,7 @@
                             <Label Content="m"/>
                             <TextBox Text="{Binding KeyboardHoldDurationSeconds, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource StringToIntConverter}}"/>
                             <Label Content="s"/>
-                            <TextBox Text="{}$)KeyboardHoldDurationMilliseconds, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource StringToIntConverter}}"/>
+                            <TextBox Text="{Binding KeyboardHoldDurationMilliseconds, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource StringToIntConverter}}"/>
                             <Label Content="ms"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Visibility="{Binding IsKeyboardHoldDurationMode, Converter={StaticResource BooleanToVisibilityConverter}}">

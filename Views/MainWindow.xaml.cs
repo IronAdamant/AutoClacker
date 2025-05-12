@@ -72,5 +72,13 @@ namespace AutoClacker.Views
         {
             Close();
         }
+
+        private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == MouseButton.Left)
+            {
+                DragMove();
+            }
+        }
     }
 }
