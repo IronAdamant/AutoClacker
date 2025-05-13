@@ -737,6 +737,11 @@ namespace AutoClacker.ViewModels
                         WindowStartupLocation = WindowStartupLocation.CenterOwner,
                         Owner = System.Windows.Application.Current.MainWindow
                     };
+                    // Apply the current theme
+                    dialog.Resources.MergedDictionaries.Add(new ResourceDictionary
+                    {
+                        Source = new Uri($"/Themes/{settings.Theme}Theme.xaml", UriKind.Relative)
+                    });
                     dialog.Show();
                     dialog.KeyDown += (s, e) =>
                     {
@@ -789,6 +794,11 @@ namespace AutoClacker.ViewModels
                         WindowStartupLocation = WindowStartupLocation.CenterOwner,
                         Owner = System.Windows.Application.Current.MainWindow
                     };
+                    // Apply the current theme
+                    dialog.Resources.MergedDictionaries.Add(new ResourceDictionary
+                    {
+                        Source = new Uri($"/Themes/{settings.Theme}Theme.xaml", UriKind.Relative)
+                    });
                     dialog.Show();
                     dialog.KeyDown += (s, e) =>
                     {
