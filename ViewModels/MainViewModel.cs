@@ -41,32 +41,7 @@ namespace AutoClacker.ViewModels
 
         public MainViewModel()
         {
-            settings = new Settings
-            {
-                ClickScope = Properties.Settings.Default.ClickScope ?? "Global",
-                TargetApplication = Properties.Settings.Default.TargetApplication ?? "",
-                ActionType = Properties.Settings.Default.ActionType ?? "Mouse",
-                MouseButton = Properties.Settings.Default.MouseButton ?? "Left",
-                ClickType = Properties.Settings.Default.ClickType ?? "Single",
-                MouseMode = Properties.Settings.Default.MouseMode ?? "Click",
-                ClickMode = Properties.Settings.Default.ClickMode ?? "Constant",
-                ClickDuration = Properties.Settings.Default.ClickDuration,
-                MouseHoldDuration = Properties.Settings.Default.MouseHoldDuration,
-                HoldMode = Properties.Settings.Default.HoldMode ?? "ConstantHold",
-                MousePhysicalHoldMode = Properties.Settings.Default.MousePhysicalHoldMode,
-                KeyboardKey = (Key)Properties.Settings.Default.KeyboardKey,
-                KeyboardMode = Properties.Settings.Default.KeyboardMode ?? "Press",
-                KeyboardHoldDuration = Properties.Settings.Default.KeyboardHoldDuration,
-                KeyboardPhysicalHoldMode = Properties.Settings.Default.KeyboardPhysicalHoldMode,
-                TriggerKey = (Key)Properties.Settings.Default.TriggerKey,
-                TriggerKeyModifiers = (ModifierKeys)Properties.Settings.Default.TriggerKeyModifiers,
-                Interval = Properties.Settings.Default.Interval,
-                Mode = Properties.Settings.Default.Mode ?? "Constant",
-                TotalDuration = Properties.Settings.Default.TotalDuration,
-                Theme = Properties.Settings.Default.Theme ?? "Light",
-                IsTopmost = Properties.Settings.Default.IsTopmost
-            };
-
+            settings = SettingsManager.LoadSettings();
             automationController = new AutomationController(this);
             applicationDetector = new ApplicationDetector();
             RunningApplications = applicationDetector.GetRunningApplications();
@@ -188,7 +163,6 @@ namespace AutoClacker.ViewModels
                 return;
             }
 
-            // Only initialize timer for duration-based modes
             if ((settings.ActionType == "Mouse" && settings.MouseMode == "Click" && settings.ClickMode == "Duration") ||
                 (settings.ActionType == "Mouse" && settings.MouseMode == "Hold" && settings.HoldMode == "HoldDuration") ||
                 (settings.ActionType == "Keyboard" && settings.KeyboardMode == "Hold" && settings.KeyboardHoldDuration != TimeSpan.Zero) ||
@@ -234,8 +208,7 @@ namespace AutoClacker.ViewModels
                 settings.ClickScope = value;
                 OnPropertyChanged(nameof(ClickScope));
                 OnPropertyChanged(nameof(IsRestrictedMode));
-                Properties.Settings.Default.ClickScope = value;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
             }
         }
 
@@ -246,8 +219,7 @@ namespace AutoClacker.ViewModels
             {
                 settings.TargetApplication = value;
                 OnPropertyChanged(nameof(TargetApplication));
-                Properties.Settings.Default.TargetApplication = value;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
             }
         }
 
@@ -260,8 +232,7 @@ namespace AutoClacker.ViewModels
                 OnPropertyChanged(nameof(ActionType));
                 OnPropertyChanged(nameof(IsMouseMode));
                 OnPropertyChanged(nameof(IsKeyboardMode));
-                Properties.Settings.Default.ActionType = value;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
             }
         }
 
@@ -272,8 +243,7 @@ namespace AutoClacker.ViewModels
             {
                 settings.MouseButton = value;
                 OnPropertyChanged(nameof(MouseButton));
-                Properties.Settings.Default.MouseButton = value;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
             }
         }
 
@@ -290,8 +260,7 @@ namespace AutoClacker.ViewModels
             {
                 settings.ClickType = value;
                 OnPropertyChanged(nameof(ClickType));
-                Properties.Settings.Default.ClickType = value;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
             }
         }
 
@@ -312,8 +281,7 @@ namespace AutoClacker.ViewModels
                 OnPropertyChanged(nameof(IsHoldModeVisible));
                 OnPropertyChanged(nameof(IsClickDurationMode));
                 OnPropertyChanged(nameof(IsHoldDurationMode));
-                Properties.Settings.Default.MouseMode = value;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
                 Console.WriteLine($"MouseMode changed to: {value}, IsClickModeVisible: {IsClickModeVisible}, IsHoldModeVisible: {IsHoldModeVisible}");
             }
         }
@@ -326,8 +294,7 @@ namespace AutoClacker.ViewModels
                 settings.ClickMode = value;
                 OnPropertyChanged(nameof(ClickMode));
                 OnPropertyChanged(nameof(IsClickDurationMode));
-                Properties.Settings.Default.ClickMode = value;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
                 Console.WriteLine($"ClickMode changed to: {value}, IsClickDurationMode: {IsClickDurationMode}");
             }
         }
@@ -339,8 +306,7 @@ namespace AutoClacker.ViewModels
             {
                 settings.ClickDuration = new TimeSpan(0, 0, value, settings.ClickDuration.Seconds, settings.ClickDuration.Milliseconds);
                 OnPropertyChanged(nameof(ClickDurationMinutes));
-                Properties.Settings.Default.ClickDuration = settings.ClickDuration;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
             }
         }
 
@@ -351,8 +317,7 @@ namespace AutoClacker.ViewModels
             {
                 settings.ClickDuration = new TimeSpan(0, 0, settings.ClickDuration.Minutes, value, settings.ClickDuration.Milliseconds);
                 OnPropertyChanged(nameof(ClickDurationSeconds));
-                Properties.Settings.Default.ClickDuration = settings.ClickDuration;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
             }
         }
 
@@ -363,8 +328,7 @@ namespace AutoClacker.ViewModels
             {
                 settings.ClickDuration = new TimeSpan(0, 0, settings.ClickDuration.Minutes, settings.ClickDuration.Seconds, value);
                 OnPropertyChanged(nameof(ClickDurationMilliseconds));
-                Properties.Settings.Default.ClickDuration = settings.ClickDuration;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
             }
         }
 
@@ -375,8 +339,7 @@ namespace AutoClacker.ViewModels
             {
                 settings.MouseHoldDuration = new TimeSpan(0, 0, value, settings.MouseHoldDuration.Seconds, settings.MouseHoldDuration.Milliseconds);
                 OnPropertyChanged(nameof(MouseHoldDurationMinutes));
-                Properties.Settings.Default.MouseHoldDuration = settings.MouseHoldDuration;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
             }
         }
 
@@ -387,8 +350,7 @@ namespace AutoClacker.ViewModels
             {
                 settings.MouseHoldDuration = new TimeSpan(0, 0, settings.MouseHoldDuration.Minutes, value, settings.MouseHoldDuration.Milliseconds);
                 OnPropertyChanged(nameof(MouseHoldDurationSeconds));
-                Properties.Settings.Default.MouseHoldDuration = settings.MouseHoldDuration;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
             }
         }
 
@@ -399,8 +361,7 @@ namespace AutoClacker.ViewModels
             {
                 settings.MouseHoldDuration = new TimeSpan(0, 0, settings.MouseHoldDuration.Minutes, settings.MouseHoldDuration.Seconds, value);
                 OnPropertyChanged(nameof(MouseHoldDurationMilliseconds));
-                Properties.Settings.Default.MouseHoldDuration = settings.MouseHoldDuration;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
             }
         }
 
@@ -412,8 +373,7 @@ namespace AutoClacker.ViewModels
                 settings.HoldMode = value;
                 OnPropertyChanged(nameof(HoldMode));
                 OnPropertyChanged(nameof(IsHoldDurationMode));
-                Properties.Settings.Default.HoldMode = value;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
                 Console.WriteLine($"HoldMode changed to: {value}, IsHoldDurationMode: {IsHoldDurationMode}");
             }
         }
@@ -425,8 +385,7 @@ namespace AutoClacker.ViewModels
             {
                 settings.MousePhysicalHoldMode = value;
                 OnPropertyChanged(nameof(MousePhysicalHoldMode));
-                Properties.Settings.Default.MousePhysicalHoldMode = value;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
             }
         }
 
@@ -438,8 +397,7 @@ namespace AutoClacker.ViewModels
                 settings.KeyboardKey = value;
                 OnPropertyChanged(nameof(KeyboardKey));
                 OnPropertyChanged(nameof(KeyboardKeyDisplay));
-                Properties.Settings.Default.KeyboardKey = (int)value;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
             }
         }
 
@@ -455,8 +413,7 @@ namespace AutoClacker.ViewModels
                 OnPropertyChanged(nameof(IsPressModeVisible));
                 OnPropertyChanged(nameof(IsHoldModeVisibleKeyboard));
                 OnPropertyChanged(nameof(IsKeyboardHoldDurationMode));
-                Properties.Settings.Default.KeyboardMode = value;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
                 Console.WriteLine($"KeyboardMode changed to: {value}, IsPressModeVisible: {IsPressModeVisible}, IsHoldModeVisibleKeyboard: {IsHoldModeVisibleKeyboard}");
             }
         }
@@ -469,8 +426,7 @@ namespace AutoClacker.ViewModels
                 settings.KeyboardHoldDuration = new TimeSpan(0, 0, value, settings.KeyboardHoldDuration.Seconds, settings.KeyboardHoldDuration.Milliseconds);
                 OnPropertyChanged(nameof(KeyboardHoldDurationMinutes));
                 OnPropertyChanged(nameof(IsKeyboardHoldDurationMode));
-                Properties.Settings.Default.KeyboardHoldDuration = settings.KeyboardHoldDuration;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
             }
         }
 
@@ -482,8 +438,7 @@ namespace AutoClacker.ViewModels
                 settings.KeyboardHoldDuration = new TimeSpan(0, 0, settings.KeyboardHoldDuration.Minutes, value, settings.KeyboardHoldDuration.Milliseconds);
                 OnPropertyChanged(nameof(KeyboardHoldDurationSeconds));
                 OnPropertyChanged(nameof(IsKeyboardHoldDurationMode));
-                Properties.Settings.Default.KeyboardHoldDuration = settings.KeyboardHoldDuration;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
             }
         }
 
@@ -495,8 +450,7 @@ namespace AutoClacker.ViewModels
                 settings.KeyboardHoldDuration = new TimeSpan(0, 0, settings.KeyboardHoldDuration.Minutes, settings.KeyboardHoldDuration.Seconds, value);
                 OnPropertyChanged(nameof(KeyboardHoldDurationMilliseconds));
                 OnPropertyChanged(nameof(IsKeyboardHoldDurationMode));
-                Properties.Settings.Default.KeyboardHoldDuration = settings.KeyboardHoldDuration;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
             }
         }
 
@@ -507,8 +461,7 @@ namespace AutoClacker.ViewModels
             {
                 settings.KeyboardPhysicalHoldMode = value;
                 OnPropertyChanged(nameof(KeyboardPhysicalHoldMode));
-                Properties.Settings.Default.KeyboardPhysicalHoldMode = value;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
             }
         }
 
@@ -520,8 +473,7 @@ namespace AutoClacker.ViewModels
                 settings.TriggerKey = value;
                 OnPropertyChanged(nameof(TriggerKey));
                 OnPropertyChanged(nameof(TriggerKeyDisplay));
-                Properties.Settings.Default.TriggerKey = (int)value;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
                 hotkeyManager?.RegisterTriggerHotkey(value, settings.TriggerKeyModifiers);
             }
         }
@@ -535,8 +487,7 @@ namespace AutoClacker.ViewModels
             {
                 settings.TriggerKeyModifiers = value;
                 OnPropertyChanged(nameof(TriggerKeyModifiers));
-                Properties.Settings.Default.TriggerKeyModifiers = (int)value;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
                 hotkeyManager?.RegisterTriggerHotkey(settings.TriggerKey, value);
             }
         }
@@ -548,8 +499,7 @@ namespace AutoClacker.ViewModels
             {
                 settings.Interval = new TimeSpan(0, 0, value, settings.Interval.Seconds, settings.Interval.Milliseconds);
                 OnPropertyChanged(nameof(IntervalMinutes));
-                Properties.Settings.Default.Interval = settings.Interval;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
             }
         }
 
@@ -560,8 +510,7 @@ namespace AutoClacker.ViewModels
             {
                 settings.Interval = new TimeSpan(0, 0, settings.Interval.Minutes, value, settings.Interval.Milliseconds);
                 OnPropertyChanged(nameof(IntervalSeconds));
-                Properties.Settings.Default.Interval = settings.Interval;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
             }
         }
 
@@ -572,8 +521,7 @@ namespace AutoClacker.ViewModels
             {
                 settings.Interval = new TimeSpan(0, 0, settings.Interval.Minutes, settings.Interval.Seconds, value);
                 OnPropertyChanged(nameof(IntervalMilliseconds));
-                Properties.Settings.Default.Interval = settings.Interval;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
             }
         }
 
@@ -585,8 +533,7 @@ namespace AutoClacker.ViewModels
                 settings.Mode = value;
                 OnPropertyChanged(nameof(Mode));
                 OnPropertyChanged(nameof(IsTimerMode));
-                Properties.Settings.Default.Mode = value;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
             }
         }
 
@@ -597,8 +544,7 @@ namespace AutoClacker.ViewModels
             {
                 settings.TotalDuration = new TimeSpan(0, 0, value, settings.TotalDuration.Seconds, settings.TotalDuration.Milliseconds);
                 OnPropertyChanged(nameof(TotalDurationMinutes));
-                Properties.Settings.Default.TotalDuration = settings.TotalDuration;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
             }
         }
 
@@ -609,8 +555,7 @@ namespace AutoClacker.ViewModels
             {
                 settings.TotalDuration = new TimeSpan(0, 0, settings.TotalDuration.Minutes, value, settings.TotalDuration.Milliseconds);
                 OnPropertyChanged(nameof(TotalDurationSeconds));
-                Properties.Settings.Default.TotalDuration = settings.TotalDuration;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
             }
         }
 
@@ -621,8 +566,7 @@ namespace AutoClacker.ViewModels
             {
                 settings.TotalDuration = new TimeSpan(0, 0, settings.TotalDuration.Minutes, settings.TotalDuration.Seconds, value);
                 OnPropertyChanged(nameof(TotalDurationMilliseconds));
-                Properties.Settings.Default.TotalDuration = settings.TotalDuration;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
             }
         }
 
@@ -633,8 +577,7 @@ namespace AutoClacker.ViewModels
             {
                 settings.Theme = value;
                 OnPropertyChanged(nameof(Theme));
-                Properties.Settings.Default.Theme = value;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
             }
         }
 
@@ -645,8 +588,7 @@ namespace AutoClacker.ViewModels
             {
                 settings.IsTopmost = value;
                 OnPropertyChanged(nameof(IsTopmost));
-                Properties.Settings.Default.IsTopmost = value;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
                 if (System.Windows.Application.Current.MainWindow != null)
                 {
                     System.Windows.Application.Current.MainWindow.Topmost = value;
@@ -888,8 +830,7 @@ namespace AutoClacker.ViewModels
         {
             settings.KeyboardHoldDuration = TimeSpan.Zero;
             OnPropertyChanged(nameof(IsKeyboardHoldDurationMode));
-            Properties.Settings.Default.KeyboardHoldDuration = settings.KeyboardHoldDuration;
-            Properties.Settings.Default.Save();
+            SettingsManager.SaveSettings(settings);
         }
 
         private void SetHoldDuration(object _)
@@ -902,6 +843,7 @@ namespace AutoClacker.ViewModels
                 KeyboardHoldDurationMilliseconds = settings.KeyboardHoldDuration.Milliseconds;
             }
             OnPropertyChanged(nameof(IsKeyboardHoldDurationMode));
+            SettingsManager.SaveSettings(settings);
         }
 
         private void RefreshApplications(object _)
@@ -916,8 +858,6 @@ namespace AutoClacker.ViewModels
             await System.Windows.Application.Current.Dispatcher.InvokeAsync(async () =>
             {
                 await ManageAutomationAsync(false, "Resetting settings");
-
-                Properties.Settings.Default.Reset();
 
                 settings.ClickScope = "Global";
                 settings.TargetApplication = "";
@@ -942,29 +882,7 @@ namespace AutoClacker.ViewModels
                 settings.Theme = "Light";
                 settings.IsTopmost = false;
 
-                Properties.Settings.Default.ClickScope = settings.ClickScope;
-                Properties.Settings.Default.TargetApplication = settings.TargetApplication;
-                Properties.Settings.Default.ActionType = settings.ActionType;
-                Properties.Settings.Default.MouseButton = settings.MouseButton;
-                Properties.Settings.Default.ClickType = settings.ClickType;
-                Properties.Settings.Default.MouseMode = settings.MouseMode;
-                Properties.Settings.Default.ClickMode = settings.ClickMode;
-                Properties.Settings.Default.ClickDuration = settings.ClickDuration;
-                Properties.Settings.Default.MouseHoldDuration = settings.MouseHoldDuration;
-                Properties.Settings.Default.HoldMode = settings.HoldMode;
-                Properties.Settings.Default.MousePhysicalHoldMode = settings.MousePhysicalHoldMode;
-                Properties.Settings.Default.KeyboardKey = (int)settings.KeyboardKey;
-                Properties.Settings.Default.KeyboardMode = settings.KeyboardMode;
-                Properties.Settings.Default.KeyboardHoldDuration = settings.KeyboardHoldDuration;
-                Properties.Settings.Default.KeyboardPhysicalHoldMode = settings.KeyboardPhysicalHoldMode;
-                Properties.Settings.Default.TriggerKey = (int)settings.TriggerKey;
-                Properties.Settings.Default.TriggerKeyModifiers = (int)settings.TriggerKeyModifiers;
-                Properties.Settings.Default.Interval = settings.Interval;
-                Properties.Settings.Default.Mode = settings.Mode;
-                Properties.Settings.Default.TotalDuration = settings.TotalDuration;
-                Properties.Settings.Default.Theme = settings.Theme;
-                Properties.Settings.Default.IsTopmost = settings.IsTopmost;
-                Properties.Settings.Default.Save();
+                SettingsManager.SaveSettings(settings);
 
                 if (window != null)
                 {
