@@ -37,16 +37,87 @@ namespace AutoClacker.Utilities
         {
             try
             {
-                using (var stream = new FileStream(SettingsFilePath, FileMode.Create, FileAccess.Write))
+                using (var memoryStream = new MemoryStream())
                 {
                     var serializer = new DataContractJsonSerializer(typeof(Settings));
-                    serializer.WriteObject(stream, settings);
+                    serializer.WriteObject(memoryStream, settings);
+                    memoryStream.Position = 0;
+
+                    // Read the JSON string and format it
+                    using (var reader = new StreamReader(memoryStream))
+                    {
+                        string jsonString = reader.ReadToEnd();
+                        // Convert to formatted JSON
+                        using (var fileStream = new FileStream(SettingsFilePath, FileMode.Create, FileAccess.Write))
+                        using (var writer = new StreamWriter(fileStream))
+                        {
+                            writer.Write(FormatJson(jsonString));
+                        }
+                    }
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error saving settings: {ex.Message}");
             }
+        }
+
+        private static string FormatJson(string json)
+        {
+            int indentation = 0;
+            const int indentSize = 2;
+            var builder = new StringBuilder();
+            bool inQuotes = false;
+
+            for (int i = 0; i < json.Length; i++)
+            {
+                char c = json[i];
+
+                if (c == '"' && (i == 0 || json[i - 1] != '\\'))
+                {
+                    inQuotes = !inQuotes;
+                    builder.Append(c);
+                    continue;
+                }
+
+                if (inQuotes)
+                {
+                    builder.Append(c);
+                    continue;
+                }
+
+                switch (c)
+                {
+                    case '{':
+                    case '[':
+                        builder.Append(c);
+                        builder.AppendLine();
+                        indentation += indentSize;
+                        builder.Append(new string(' ', indentation));
+                        break;
+                    case '}':
+                    case ']':
+                        builder.AppendLine();
+                        indentation -= indentSize;
+                        builder.Append(new string(' ', indentation));
+                        builder.Append(c);
+                        break;
+                    case ',':
+                        builder.Append(c);
+                        builder.AppendLine();
+                        builder.Append(new string(' ', indentation));
+                        break;
+                    case ':':
+                        builder.Append(c);
+                        builder.Append(' ');
+                        break;
+                    default:
+                        builder.Append(c);
+                        break;
+                }
+            }
+
+            return builder.ToString();
         }
 
         private static Settings CreateDefaultSettings()
