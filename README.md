@@ -2,7 +2,7 @@
 
 A cross-platform auto-clicker built with Avalonia UI and .NET 9.
 
-![AutoClacker Screenshot](images/AutoClacker.png)
+![AutoClacker Screenshot]([images/AutoClacker.png](https://github.com/IronAdamant/AutoClacker/blob/master/images/AutoClacker.png))
 
 ## Features
 - **Cross-platform**: Works on Windows, Linux, and macOS
