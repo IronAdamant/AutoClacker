@@ -99,3 +99,15 @@ orleans.codegen.cs
 
 # Ignore runtime settings file in bin/, but keep the default template in configs/
 bin/*/configs/settings.json
+
+# ===========================================
+# SENSITIVE FILES - Do not push to public repo
+# ===========================================
+wiki-local/
+LLM_Development.md
+llm_dev_wiki_rules.md
+debug_log/
+Complete_Project_Documentation.md
+
+# Publish outputs
+publish/

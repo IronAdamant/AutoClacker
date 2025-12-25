@@ -1,0 +1,87 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:AutoClacker.ViewModels"
+        x:Class="AutoClacker.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Title="AutoClacker"
+        Width="420" Height="600"
+        WindowStartupLocation="CenterScreen">
+    
+    <Design.DataContext>
+        <vm:MainViewModel/>
+    </Design.DataContext>
+
+    <StackPanel Margin="20" Spacing="12">
+        <!-- Header -->
+        <TextBlock Text="AutoClacker" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center"/>
+        <TextBlock Text="{Binding Platform, StringFormat='Platform: {0}'}" HorizontalAlignment="Center" Opacity="0.7"/>
+
+        <!-- Mode Toggle -->
+        <Border Background="#40FFFFFF" CornerRadius="8" Padding="10">
+            <StackPanel Spacing="5">
+                <TextBlock Text="Mode:" FontWeight="SemiBold"/>
+                <StackPanel Orientation="Horizontal" Spacing="20">
+                    <RadioButton x:Name="MouseModeRadio" Content="Mouse" IsChecked="True" GroupName="Mode"/>
+                    <RadioButton x:Name="KeyboardModeRadio" Content="Keyboard" GroupName="Mode"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Mouse Settings -->
+        <StackPanel x:Name="MouseSettings" Spacing="5">
+            <TextBlock Text="Mouse Button:" FontWeight="SemiBold"/>
+            <ComboBox x:Name="MouseButtonCombo" SelectedIndex="0" HorizontalAlignment="Stretch">
+                <ComboBoxItem Content="Left"/>
+                <ComboBoxItem Content="Right"/>
+                <ComboBoxItem Content="Middle"/>
+            </ComboBox>
+            <StackPanel Orientation="Horizontal" Spacing="15">
+                <RadioButton x:Name="SingleClick" Content="Single" IsChecked="True" GroupName="ClickType"/>
+                <RadioButton x:Name="DoubleClick" Content="Double" GroupName="ClickType"/>
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Keyboard Settings -->
+        <StackPanel x:Name="KeyboardSettings" Spacing="5" IsVisible="False">
+            <TextBlock Text="Keyboard Key:" FontWeight="SemiBold"/>
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button x:Name="SetKeyButton" Content="Set Key" Click="SetKeyButton_Click" Width="100"/>
+                <TextBlock x:Name="KeyboardKeyLabel" Text="Space" VerticalAlignment="Center" FontWeight="Bold"/>
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Interval -->
+        <StackPanel Spacing="5">
+            <TextBlock x:Name="IntervalLabel" Text="Interval: 100ms" FontWeight="SemiBold"/>
+            <Slider x:Name="IntervalSlider" Minimum="10" Maximum="2000" Value="100"/>
+        </StackPanel>
+
+        <!-- Hotkey Display -->
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="5">
+            <TextBlock Text="Hotkey:" Opacity="0.7"/>
+            <TextBlock x:Name="HotkeyLabel" Text="F6" FontWeight="Bold"/>
+        </StackPanel>
+
+        <!-- Status -->
+        <Border x:Name="StatusBorder" Background="#F44336" CornerRadius="5" Padding="10">
+            <TextBlock x:Name="StatusLabel" Text="Stopped" HorizontalAlignment="Center" FontWeight="Bold" Foreground="White"/>
+        </Border>
+
+        <!-- Toggle Button -->
+        <Button x:Name="ToggleButton" Content="Start"
+                Click="ToggleButton_Click"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Center"
+                FontSize="18"
+                Padding="10"/>
+
+        <!-- Settings Button -->
+        <Button x:Name="SettingsButton" Content="⚙ Settings"
+                Click="SettingsButton_Click"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Center"/>
+
+        <!-- Footer -->
+        <TextBlock Text="Creation of IronAdamant, 2025" HorizontalAlignment="Center" Opacity="0.5" FontSize="10"/>
+    </StackPanel>
+</Window>
