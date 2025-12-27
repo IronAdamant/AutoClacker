@@ -106,6 +106,7 @@ bin/*/configs/settings.json
 wiki-local/
 LLM_Development.md
 llm_dev_wiki_rules.md
+llm-dev-wiki-rules.md
 debug_log/
 Complete_Project_Documentation.md
 
