@@ -8,7 +8,7 @@ namespace AutoClacker.Services
     /// Global keyboard hook for detecting hotkeys even when app is not focused.
     /// Windows-only implementation using SetWindowsHookEx.
     /// </summary>
-    public class GlobalHotkey : IDisposable
+    public class GlobalHotkey : IGlobalHotkey
     {
         public event Action? OnHotkeyPressed;
         

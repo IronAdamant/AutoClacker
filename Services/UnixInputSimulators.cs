@@ -1,32 +1,64 @@
 using System;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace AutoClacker.Services
 {
-    /// <summary>Linux input via xdotool CLI.</summary>
+    /// <summary>Linux input via X11 XTest extension (no external dependencies).</summary>
     public class LinuxInputSimulator : IInputSimulator
     {
         public string PlatformName => "Linux";
-        public bool IsAvailable => RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
+        public bool IsAvailable { get; }
+
+        private readonly IntPtr _display;
+
+        public LinuxInputSimulator()
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                IsAvailable = false;
+                return;
+            }
+
+            _display = X11Native.XOpenDisplay(null);
+            if (_display == IntPtr.Zero)
+            {
+                Logger.Log("LinuxInputSimulator: XOpenDisplay failed (pure Wayland with no XWayland?)");
+                IsAvailable = false;
+                return;
+            }
+
+            IsAvailable = true;
+            Logger.Log("LinuxInputSimulator: X11 display opened successfully");
+        }
 
         public void MouseClick(string btn, bool dbl = false)
         {
             if (!IsAvailable) return;
-            int b = btn.ToLower() switch { "right" => 3, "middle" => 2, _ => 1 };
-            Exec(dbl ? $"xdotool click --repeat 2 {b}" : $"xdotool click {b}");
+            uint b = btn.ToLower() switch { "right" => 3, "middle" => 2, _ => 1 };
+            Click(b);
+            if (dbl) Click(b);
         }
 
         public void KeyPress(string key)
         {
             if (!IsAvailable) return;
-            string k = key.ToLower() switch { "space" => "space", "enter" => "Return", "tab" => "Tab", "escape" => "Escape", _ => key };
-            Exec($"xdotool key {k}");
+            string keysymName = X11Native.MapKeyToKeysymName(key);
+            ulong keysym = X11Native.XStringToKeysym(keysymName);
+            if (keysym == 0) { Logger.Log($"LinuxInputSimulator: Unknown keysym for '{key}'"); return; }
+
+            uint keycode = X11Native.XKeysymToKeycode(_display, keysym);
+            if (keycode == 0) { Logger.Log($"LinuxInputSimulator: No keycode for keysym '{keysymName}'"); return; }
+
+            X11Native.XTestFakeKeyEvent(_display, keycode, true, 0);
+            X11Native.XTestFakeKeyEvent(_display, keycode, false, 0);
+            X11Native.XFlush(_display);
         }
 
-        void Exec(string cmd)
+        private void Click(uint button)
         {
-            try { Process.Start(new ProcessStartInfo("/bin/bash", $"-c \"{cmd}\"") { RedirectStandardOutput = true, UseShellExecute = false, CreateNoWindow = true })?.WaitForExit(1000); } catch { }
+            X11Native.XTestFakeButtonEvent(_display, button, true, 0);
+            X11Native.XTestFakeButtonEvent(_display, button, false, 0);
+            X11Native.XFlush(_display);
         }
     }
 

@@ -14,7 +14,7 @@ namespace AutoClacker;
 public partial class MainWindow : Window
 {
     private readonly MainViewModel _vm;
-    private GlobalHotkey? _globalHotkey;
+    private IGlobalHotkey? _globalHotkey;
     private Slider? _slider; private TextBlock? _intLbl, _statusLbl, _kbLbl, _hotkeyLbl; private Border? _statusBorder;
     private Button? _toggleBtn, _setKeyBtn; private ComboBox? _mouseCombo;
     private RadioButton? _single, _double, _mouseMode, _kbMode; private StackPanel? _mousePanel, _kbPanel;
@@ -64,8 +64,14 @@ public partial class MainWindow : Window
         
         // Register global hotkey (works even when app not focused)
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
             _globalHotkey = new GlobalHotkey();
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            _globalHotkey = new LinuxGlobalHotkey();
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            _globalHotkey = new MacGlobalHotkey();
+
+        if (_globalHotkey != null)
+        {
             _globalHotkey.OnHotkeyPressed += OnGlobalHotkey;
             _globalHotkey.Register(_vm.TriggerKey);
             Logger.Log($"Global hotkey registered for {_vm.TriggerKey}");
