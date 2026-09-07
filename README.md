@@ -10,9 +10,9 @@ Cross-platform mouse and keyboard click automation, built with Avalonia UI and .
 
 ![AutoClacker Screenshot](Images/AutoClacker.png)
 
-Windows, macOS, and Linux are targeted. There is **no installer**: run from source with `dotnet run`, or download / publish a portable self-contained binary and run that file.
+Windows and macOS have official portable builds. There is **no installer**: run from source with `dotnet run`, or download / publish a self-contained binary and run that file. Linux is in the source tree for anyone who wants to fork and publish their own build.
 
-Building from source requires the **.NET 10 SDK** (the .NET 10 *runtime* alone is not enough). A published Windows `.exe` is self-contained and does **not** need the SDK to run. Windows portable builds are on [Releases](https://github.com/IronAdamant/AutoClacker/releases).
+Building from source requires the **.NET 10 SDK** (the .NET 10 *runtime* alone is not enough). A published Windows `.exe` is self-contained and does **not** need the SDK to run. Windows portable builds are on [Releases](https://github.com/IronAdamant/AutoClacker/releases). Apple Silicon macOS builds (`.app` inside a zip) are on the same [Releases](https://github.com/IronAdamant/AutoClacker/releases) page.
 
 ## Features
 
@@ -33,8 +33,8 @@ Building from source requires the **.NET 10 SDK** (the .NET 10 *runtime* alone i
 | Platform | Input | Global hotkey | Notes |
 |----------|-------|---------------|--------|
 | **Windows** | Supported | Supported | Primary / best-tested path |
-| **macOS** | Requires Accessibility | Requires Accessibility | Grant in System Settings → Privacy & Security → Accessibility |
-| **Linux** | X11 / XWayland | X11 / XWayland | Pure Wayland without XWayland is **not** supported |
+| **macOS** | Requires Accessibility | Requires Accessibility | Official **Apple Silicon** `.app` on [Releases](https://github.com/IronAdamant/AutoClacker/releases). Grant **AutoClacker** in System Settings → Privacy & Security → Accessibility |
+| **Linux** | X11 / XWayland | X11 / XWayland | No official portable build. Fork and publish if you need one. Pure Wayland without XWayland is **not** supported |
 
 ## Layout
 
@@ -98,15 +98,15 @@ dotnet publish src/AutoClacker.Desktop -c Release -r linux-x64 --self-contained 
 dotnet publish src/AutoClacker.Desktop -c Release -r osx-arm64 --self-contained -p:PublishSingleFile=true -o publish/osx-arm64
 ```
 
-Then run `publish/win-x64/AutoClacker.exe` on Windows, `./publish/linux-x64/AutoClacker` on Linux, or open `publish/osx-arm64/AutoClacker.app` on macOS (`scripts/publish.sh osx-arm64` wraps a named `.app` bundle so the menu bar says **AutoClacker**, not “Avalonia Application”).
+Then run `publish/win-x64/AutoClacker.exe` on Windows. On macOS, `scripts/publish.sh osx-arm64` wraps `publish/osx-arm64/AutoClacker.app` so the menu bar and Dock say **AutoClacker**, not “Avalonia Application”. Official Apple Silicon zips are on [Releases](https://github.com/IronAdamant/AutoClacker/releases). Intel Macs can publish `osx-x64` themselves.
 
-`scripts/publish.sh` takes an optional RID argument and defaults to the current host RID.
+`scripts/publish.sh` takes an optional RID argument and defaults to the current host RID. A `linux-x64` RID exists in the script for forks; there is no official Linux download.
 
 ## Platform notes
 
 - **Windows:** Desktop input injection needs no extra permission for normal use. Live runs are a GUI app (`WinExe`) with **no console window** unless you enable **Show Debug Console** in Settings (requires restart). Optional **Write debug log** writes to `%AppData%\AutoClacker\debug.log`.
-- **macOS:** Accessibility is required for both injection and the global hotkey. The UI surfaces unavailability when trust is missing. Grant AutoClacker (or your terminal / IDE if you `dotnet run`) in System Settings → Privacy & Security → Accessibility. Optional **Write debug log** (Settings) writes to `~/Library/Application Support/AutoClacker/debug.log`. During keyboard automation, click another window so injected keys do not land on AutoClacker itself.
-- **Linux:** Uses `libX11` / `libXtst`. An X11 session or XWayland is required. Holding the hotkey does not thrash start/stop (auto-repeat suppressed).
+- **macOS (Apple Silicon):** Download `AutoClacker-osx-arm64.zip` from [Releases](https://github.com/IronAdamant/AutoClacker/releases), unzip, and open `AutoClacker.app`. No .NET SDK is required to run it. The build is ad-hoc signed, not notarized: if Gatekeeper blocks it, right-click the app → **Open**. Grant **AutoClacker** (the `.app`, not Terminal) in System Settings → Privacy & Security → Accessibility — both mouse/keyboard injection and the global hotkey need it. The UI shows when trust is missing. After **Start**, click the target app so injected keys do not land on AutoClacker. Optional **Write debug log** writes to `~/Library/Application Support/AutoClacker/debug.log`. If you `dotnet run` from a terminal or IDE, grant Accessibility to that host instead.
+- **Linux:** Not an official portable release. The tree still has an X11 / XWayland module (`libX11` / `libXtst`) for anyone who wants to fork and publish. Pure Wayland without XWayland is not supported.
 
 ## License
 
