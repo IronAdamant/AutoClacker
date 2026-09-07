@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AutoClacker.App/AutoClacker.App.csproj" />
+    <Project Path="src/AutoClacker.Core/AutoClacker.Core.csproj" />
+    <Project Path="src/AutoClacker.Desktop/AutoClacker.Desktop.csproj" />
+    <Project Path="src/AutoClacker.Linux/AutoClacker.Linux.csproj" />
+    <Project Path="src/AutoClacker.MacOS/AutoClacker.MacOS.csproj" />
+    <Project Path="src/AutoClacker.Windows/AutoClacker.Windows.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AutoClacker.Core.Tests/AutoClacker.Core.Tests.csproj" />
+  </Folder>
+</Solution>

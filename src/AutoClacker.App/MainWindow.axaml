@@ -1,0 +1,93 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:AutoClacker.App.ViewModels"
+        x:Class="AutoClacker.App.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Title="AutoClacker"
+        Icon="/Assets/icon.ico"
+        Width="420" Height="720"
+        WindowStartupLocation="CenterScreen">
+
+    <StackPanel Margin="20" Spacing="12">
+        <Image Source="/Assets/icon.png" Width="72" Height="72" HorizontalAlignment="Center"/>
+        <TextBlock Text="AutoClacker" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center"/>
+        <TextBlock Text="{Binding Platform, StringFormat='Platform: {0}'}" HorizontalAlignment="Center" Opacity="0.7"/>
+
+        <Border Background="#40FFFFFF" CornerRadius="8" Padding="10">
+            <StackPanel Spacing="5">
+                <TextBlock Text="Mode:" FontWeight="SemiBold"/>
+                <StackPanel Orientation="Horizontal" Spacing="20">
+                    <RadioButton Content="Mouse" IsChecked="{Binding IsMouseMode, Mode=TwoWay}" GroupName="Mode"/>
+                    <RadioButton Content="Keyboard" IsChecked="{Binding IsKeyboardMode, Mode=TwoWay}" GroupName="Mode"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <StackPanel Spacing="5" IsVisible="{Binding IsMouseMode}">
+            <TextBlock Text="Mouse Button:" FontWeight="SemiBold"/>
+            <ComboBox ItemsSource="{Binding MouseButtons}"
+                      SelectedItem="{Binding SelectedMouseButton, Mode=TwoWay}"
+                      HorizontalAlignment="Stretch"/>
+            <StackPanel Orientation="Horizontal" Spacing="15">
+                <RadioButton Content="Single" IsChecked="{Binding IsSingleClick, Mode=TwoWay}" GroupName="ClickType"/>
+                <RadioButton Content="Double" IsChecked="{Binding IsDoubleClick, Mode=TwoWay}" GroupName="ClickType"/>
+            </StackPanel>
+        </StackPanel>
+
+        <StackPanel Spacing="5" IsVisible="{Binding IsKeyboardMode}">
+            <TextBlock Text="Keyboard Key:" FontWeight="SemiBold"/>
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button x:Name="SetKeyButton" Content="Set Key" Click="SetKeyButton_Click" Width="100"/>
+                <TextBlock Text="{Binding KbKey}" VerticalAlignment="Center" FontWeight="Bold"/>
+            </StackPanel>
+        </StackPanel>
+
+        <StackPanel Spacing="5">
+            <TextBlock Text="{Binding Interval, StringFormat='Interval: {0}ms'}" FontWeight="SemiBold"/>
+            <Slider Minimum="10" Maximum="2000" Value="{Binding Interval, Mode=TwoWay}"/>
+        </StackPanel>
+
+        <StackPanel Spacing="5">
+            <TextBlock Text="Action limit:" FontWeight="SemiBold"/>
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <CheckBox Content="Limit"
+                          IsChecked="{Binding ActionLimitEnabled, Mode=TwoWay}"
+                          VerticalAlignment="Center"/>
+                <TextBox Width="120"
+                         Watermark="count"
+                         Text="{Binding ActionLimitText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         IsEnabled="{Binding ActionLimitEnabled}"
+                         VerticalAlignment="Center"/>
+            </StackPanel>
+            <TextBlock Text="{Binding RemainingDisplay}"
+                       IsVisible="{Binding ShowRemaining}"
+                       FontWeight="SemiBold"
+                       Opacity="0.8"/>
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="5">
+            <TextBlock Text="Hotkey:" Opacity="0.7"/>
+            <TextBlock Text="{Binding HotkeyDisplay}" FontWeight="Bold"/>
+        </StackPanel>
+
+        <Border x:Name="StatusBorder" Background="#F44336" CornerRadius="5" Padding="10">
+            <TextBlock Text="{Binding Status}" HorizontalAlignment="Center" FontWeight="Bold" Foreground="White"
+                       TextWrapping="Wrap"/>
+        </Border>
+
+        <Button Content="{Binding ToggleLabel}"
+                Click="ToggleButton_Click"
+                IsEnabled="{Binding CanStart}"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Center"
+                FontSize="18"
+                Padding="10"/>
+
+        <Button Content="⚙ Settings"
+                Click="SettingsButton_Click"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Center"/>
+
+        <TextBlock Text="Creation of IronAdamant, 2025" HorizontalAlignment="Center" Opacity="0.5" FontSize="10"/>
+    </StackPanel>
+</Window>

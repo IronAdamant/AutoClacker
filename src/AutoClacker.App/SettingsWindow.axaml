@@ -1,0 +1,33 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:AutoClacker.App.ViewModels"
+        x:Class="AutoClacker.App.SettingsWindow"
+        x:DataType="vm:MainViewModel"
+        Title="Settings"
+        Width="360" Height="300"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False">
+
+    <StackPanel Margin="20" Spacing="15">
+        <TextBlock Text="Global Hotkey" FontWeight="SemiBold" FontSize="16"/>
+        <StackPanel Orientation="Horizontal" Spacing="10">
+            <Button x:Name="SetTriggerButton" Content="Set Hotkey" Click="SetTriggerButton_Click" Width="120"/>
+            <TextBlock x:Name="TriggerKeyLabel" Text="{Binding TriggerKey}" VerticalAlignment="Center" FontWeight="Bold"/>
+        </StackPanel>
+        <TextBlock Text="{Binding HotkeyDisplay, StringFormat='Registered as: {0}'}" Opacity="0.7" FontSize="12"/>
+
+        <CheckBox Content="Write debug log"
+                  IsChecked="{Binding EnableDebugLog, Mode=TwoWay}"/>
+
+        <CheckBox x:Name="DebugConsoleCheckbox"
+                  Content="Show Debug Console (requires restart)"
+                  IsVisible="{Binding SupportsDebugConsole}"
+                  IsChecked="{Binding ShowDebugConsole, Mode=TwoWay}"/>
+
+        <TextBlock Text="{Binding Capabilities.UnavailableReason}"
+                   Opacity="0.7" FontSize="11" TextWrapping="Wrap"
+                   IsVisible="{Binding ShowPermissionHint}"/>
+
+        <Button Content="Close" Click="Close_Click" HorizontalAlignment="Right" Width="100"/>
+    </StackPanel>
+</Window>

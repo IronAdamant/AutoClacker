@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>AutoClacker.Desktop</RootNamespace>
+    <AssemblyName>AutoClacker</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Description>AutoClacker desktop host</Description>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <ApplicationIcon>Assets/icon.ico</ApplicationIcon>
+    <ApplicationTitle>AutoClacker</ApplicationTitle>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="Info.plist" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="Assets/AppIcon.icns" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="Assets/icon.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="$(AvaloniaVersion)" />
+    <PackageReference Include="Avalonia.Desktop" Version="$(AvaloniaVersion)" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="$(AvaloniaVersion)" />
+    <PackageReference Include="Tmds.DBus.Protocol" Version="0.21.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AutoClacker.Core\AutoClacker.Core.csproj" />
+    <ProjectReference Include="..\AutoClacker.App\AutoClacker.App.csproj" />
+    <ProjectReference Include="..\AutoClacker.Windows\AutoClacker.Windows.csproj" />
+    <ProjectReference Include="..\AutoClacker.MacOS\AutoClacker.MacOS.csproj" />
+    <ProjectReference Include="..\AutoClacker.Linux\AutoClacker.Linux.csproj" />
+  </ItemGroup>
+</Project>

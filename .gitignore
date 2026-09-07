@@ -3,6 +3,8 @@
 ##
 ## Based on https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+.DS_Store
+
 # User-specific files
 *.rsuser
 *.suo
@@ -97,9 +99,6 @@ orleans.codegen.cs
 # Local History for Visual Studio
 .localhistory/
 
-# Ignore runtime settings file in bin/, but keep the default template in configs/
-bin/*/configs/settings.json
-
 # ===========================================
 # SENSITIVE FILES - Do not push to public repo
 # ===========================================
@@ -112,3 +111,23 @@ Complete_Project_Documentation.md
 
 # Publish outputs
 publish/
+
+# Local AI/dev tooling state (machine-local, not project sources)
+.chisel/
+.coordinationhub/
+.stele-context/
+.wikifier/
+.wikifier_staging/
+journal/
+Logged_issues/
+wikifier.sh
+docs/wiki/
+file_health.md
+file_health.json
+library.md
+pending_updates.md
+monitored_paths.txt
+exclude_patterns.txt
+# Agent wiki sidecars (not product source)
+*.wiki.md
+Docs/handoff/

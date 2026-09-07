@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>AutoClacker.Core</RootNamespace>
+  </PropertyGroup>
+</Project>

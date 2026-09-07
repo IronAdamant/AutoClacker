@@ -1,0 +1,402 @@
+Date/Time:        2026-09-07 00:03:31.850 +1000
+End time:         2026-09-07 00:18:02.201 +1000
+OS Version:       macOS 26.6.2 (Build 25G83)
+Architecture:     arm64e
+Report Version:   72
+Incident Identifier: 4AD83149-8B39-4BFB-9EF1-B6B5C4862A6C
+
+Data Source:      Stackshots
+Shared Cache:     F2E86C53-6052-388B-BA71-5A0C9B569413 slid base address 0x18f284000, slide 0xf284000 (System Primary)
+Shared Cache:     782F9475-E902-368D-8FAF-811BFE4C2832 slid base address 0x182b04000, slide 0x2b04000 (DriverKit)
+Shared Cache:     F2E86C53-6052-388B-BA71-5A0C9B569413 slid base address 0x184890000, slide 0x4890000
+
+Command:          AutoClacker
+Path:             /Users/USER/Documents/*/AutoClacker
+Architecture:     arm64
+Parent:           zsh [36619] [unique pid 531795]
+Responsible:      Terminal [1535]
+PID:              36630
+Time Since Fork:  904s
+
+Event:            hang
+Duration:         870.35s
+Duration Sampled: 1.10s (process was unresponsive for 869 seconds before sampling)
+Steps:            11 (100ms sampling interval)
+
+Hardware model:   Mac14,9
+Active cpus:      12
+Memory size:      32 GB
+HW page size:     16384
+VM page size:     16384
+Shared cache residency: 21.25% (1179.70 MB / 5551.31 MB)
+
+Time Since Boot:  800784s
+Time Awake Since Boot: 351946s
+Time Since Wake:  4908s
+
+Fan speed:        0 rpm
+Total CPU Time:   3.591s (8.4G cycles, 19.6G instructions, 0.43c/i, 2.34GHz avg)
+Advisory levels:  Battery -> 3, User -> 2, ThermalPressure -> 0, Combined -> 2
+Free disk space:  593.33 GB/926.35 GB, low space threshold 3072 MB
+Vnodes Available: 67.42% (177419/263168)
+Models:           none
+
+Launchd throttled processes:
+  AssistiveControl throttled after exit(): throttled samples 1-5, throttled samples 6-11
+
+Preferred User Language: en-AU
+Country Code:     AU
+OS Cryptex File Extents: 1
+
+--------------------------------------------------
+Timeline format: stacks are sorted chronologically
+Use -i and -heavy to re-report with count sorting
+--------------------------------------------------
+
+
+Heaviest stack for the main thread of the target process:
+  11  start + 6992 (dyld + 132324) [0x18f3b84e4]
+  11  ??? (AutoClacker + 31156) [0x10254f9b4]
+  11  ??? (AutoClacker + 30276) [0x10254f644]
+  11  ??? (AutoClacker + 48836) [0x102553ec4]
+  11  ??? (AutoClacker + 67288) [0x1025586d8]
+  11  ??? (AutoClacker + 71896) [0x1025598d8]
+  11  ??? (AutoClacker + 263584) [0x1025885a0]
+  11  ??? (AutoClacker + 260076) [0x1025877ec]
+  11  ??? (AutoClacker + 695988) [0x1025f1eb4]
+  11  ??? (AutoClacker + 1717596) [0x1026eb55c]
+  11  ??? (AutoClacker + 1572280) [0x1026c7db8]
+  11  ??? (AutoClacker + 1571444) [0x1026c7a74]
+  11  ??? (AutoClacker + 2591832) [0x1027c0c58]
+  11  ??? (AutoClacker + 4066400) [0x102928c60]
+  11  ??? [0x3012a1fc8]
+  11  ??? [0x3012bd4dc]
+  11  ??? [0x302785164]
+  11  ??? [0x302785270]
+  11  ??? [0x302a9c1f8]
+  11  ??? [0x302a9ca64]
+  11  ??? [0x302a9cf6c]
+  11  ??? [0x302a9d49c]
+  11  ??? [0x302a9da80]
+  11  ??? (libAvalonia.Native.OSX.dylib + 32220) [0x12fa8fddc]
+  11  -[NSApplication run] + 408 (AppKit + 180580) [0x193c69164]
+  11  -[NSApplication _handleEvent:] + 60 (AppKit + 8496856) [0x1944576d8]
+  11  ??? (libAvalonia.Native.OSX.dylib + 6172) [0x12fa8981c]
+  11  -[NSApplication(NSEventRouting) sendEvent:] + 716 (AppKit + 12374680) [0x19480a298]
+  11  ??? (libAvalonia.Native.OSX.dylib + 154612) [0x12faadbf4]
+  11  -[NSWindow(NSEventRouting) sendEvent:] + 380 (AppKit + 1429140) [0x193d99e94]
+  11  -[NSWindow(NSEventRouting) _reallySendEvent:isDelayedEvent:] + 300 (AppKit + 1429860) [0x193d9a164]
+  11  ??? (libAvalonia.Native.OSX.dylib + 129832) [0x12faa7b28]
+  11  ??? (libAvalonia.Native.OSX.dylib + 129268) [0x12faa78f4]
+  11  ??? [0x302d9a210]
+  11  ??? [0x302d9a3e4]
+  11  <patched truncated backtrace>
+  11  ??? [0x302d9a5cc]
+  11  ??? [0x302c9b748]
+  11  ??? [0x302c9b970]
+  11  ??? [0x302c9c3f0]
+  11  ??? [0x302d9b2a0]
+  11  ??? [0x302c59edc]
+  11  ??? [0x302c5ba14]
+  11  ??? [0x302c53da8]
+  11  ??? [0x3033d520c]
+  11  ??? [0x302d9bbbc]
+  11  ??? [0x3033eba38]
+  11  ??? [0x302bfe3e4]
+  11  ??? [0x302bfeac0]
+  11  ??? [0x302bff0b0]
+  6   __CFCheckCFInfoPACSignature + 44 (CoreFoundation + 1378684) [0x18f91397c]
+ *6   ??? (kernel.release.t6020 + 22908) [0xfffffe000b72197c]
+ *5   ??? (kernel.release.t6020 + 1914736) [0xfffffe000b8ef770]
+ *5   ??? (kernel.release.t6020 + 1921320) [0xfffffe000b8f1128]
+ *5   ??? (kernel.release.t6020 + 359452) [0xfffffe000b773c1c]
+ *5   ??? (kernel.release.t6020 + 357976) [0xfffffe000b773658]
+ *5   ??? (kernel.release.t6020 + 951144) [0xfffffe000b804368]
+ *2   ??? (kernel.release.t6020 + 384392) [0xfffffe000b779d88]
+ *2   ??? (kernel.release.t6020 + 202412) [0xfffffe000b74d6ac]
+ *2   ??? (kernel.release.t6020 + 587516) [0xfffffe000b7ab6fc]
+ *2   ??? (kernel.release.t6020 + 592544) [0xfffffe000b7acaa0]
+
+
+Process:          AutoClacker [36630] [unique pid 531806]
+UUID:             A13ADF59-BE7C-3AF9-A868-8CE5EB4AEEF3
+Path:             /Users/USER/Documents/*/AutoClacker
+Shared Cache:     F2E86C53-6052-388B-BA71-5A0C9B569413 slid base address 0x18f284000, slide 0xf284000 (System Primary)
+Architecture:     arm64
+Parent:           zsh [36619] [unique pid 531795]
+Responsible:      Terminal [1535]
+UID:              501
+Memory Limit:     0MB
+Jetsam Priority:  180
+Footprint:        117.77 MB
+Time Since Fork:  904s
+Num samples:      11 (1-11)
+CPU Time:         1.007s (2.8G cycles, 9.6G instructions, 0.29c/i, 2.76GHz avg)
+Note:             Unresponsive for 869 seconds before sampling
+Num threads:      16
+Note:             4 idle work queue threads omitted
+
+  Thread 0x670737    DispatchQueue "com.apple.main-thread"(1)    11 samples (1-11)    priority 46-47 (base 46-47)    cpu time 0.314s (865.8M cycles, 2.6G instructions, 0.34c/i, 2.76GHz avg)
+  <process frontmost, thread QoS user interactive (requested user interactive), process unclamped, jetsam priority 180 (requested 180, assertion 0), process memory limit 0MB, process received importance donation from WindowServer [601], process received importance donation from CursorUIViewService [1571], IO tier 0, priority 47 (47)>
+  11  start + 6992 (dyld + 132324) [0x18f3b84e4] 1-11
+    11  ??? (AutoClacker + 31156) [0x10254f9b4] 1-11
+      11  ??? (AutoClacker + 30276) [0x10254f644] 1-11
+        11  ??? (AutoClacker + 48836) [0x102553ec4] 1-11
+          11  ??? (AutoClacker + 67288) [0x1025586d8] 1-11
+            11  ??? (AutoClacker + 71896) [0x1025598d8] 1-11
+              11  ??? (AutoClacker + 263584) [0x1025885a0] 1-11
+                11  ??? (AutoClacker + 260076) [0x1025877ec] 1-11
+                  11  ??? (AutoClacker + 695988) [0x1025f1eb4] 1-11
+                    11  ??? (AutoClacker + 1717596) [0x1026eb55c] 1-11
+                      11  ??? (AutoClacker + 1572280) [0x1026c7db8] 1-11
+                        11  ??? (AutoClacker + 1571444) [0x1026c7a74] 1-11
+                          11  ??? (AutoClacker + 2591832) [0x1027c0c58] 1-11
+                            11  ??? (AutoClacker + 4066400) [0x102928c60] 1-11
+                              11  ??? [0x3012a1fc8] 1-11
+                                11  ??? [0x3012bd4dc] 1-11
+                                  11  ??? [0x302785164] 1-11
+                                    11  ??? [0x302785270] 1-11
+                                      11  ??? [0x302a9c1f8] 1-11
+                                        11  ??? [0x302a9ca64] 1-11
+                                          11  ??? [0x302a9cf6c] 1-11
+                                            11  ??? [0x302a9d49c] 1-11
+                                              11  ??? [0x302a9da80] 1-11
+                                                11  ??? (libAvalonia.Native.OSX.dylib + 32220) [0x12fa8fddc] 1-11
+                                                  11  -[NSApplication run] + 408 (AppKit + 180580) [0x193c69164] 1-11
+                                                    11  -[NSApplication _handleEvent:] + 60 (AppKit + 8496856) [0x1944576d8] 1-11
+                                                      11  ??? (libAvalonia.Native.OSX.dylib + 6172) [0x12fa8981c] 1-11
+                                                        11  -[NSApplication(NSEventRouting) sendEvent:] + 716 (AppKit + 12374680) [0x19480a298] 1-11
+                                                          11  ??? (libAvalonia.Native.OSX.dylib + 154612) [0x12faadbf4] 1-11
+                                                            11  -[NSWindow(NSEventRouting) sendEvent:] + 380 (AppKit + 1429140) [0x193d99e94] 1-11
+                                                              11  -[NSWindow(NSEventRouting) _reallySendEvent:isDelayedEvent:] + 300 (AppKit + 1429860) [0x193d9a164] 1-11
+                                                                11  ??? (libAvalonia.Native.OSX.dylib + 129832) [0x12faa7b28] 1-11
+                                                                  11  ??? (libAvalonia.Native.OSX.dylib + 129268) [0x12faa78f4] 1-11
+                                                                    11  ??? [0x302d9a210] 1-11
+                                                                      11  ??? [0x302d9a3e4] 1-11
+                                                                        11  <patched truncated backtrace> 1-11
+                                                                          11  ??? [0x302d9a5cc] 1-11
+                                                                            11  ??? [0x302c9b748] 1-11
+                                                                              11  ??? [0x302c9b970] 1-11
+                                                                                11  ??? [0x302c9c3f0] 1-11
+                                                                                  11  ??? [0x302d9b2a0] 1-11
+                                                                                    11  ??? [0x302c59edc] 1-11
+                                                                                      11  ??? [0x302c5ba14] 1-11
+                                                                                        11  ??? [0x302c53da8] 1-11
+                                                                                          11  ??? [0x3033d520c] 1-11
+                                                                                            11  ??? [0x302d9bbbc] 1-11
+                                                                                              11  ??? [0x3033eba38] 1-11
+                                                                                                11  ??? [0x302bfe3e4] 1-11
+                                                                                                  11  ??? [0x302bfeac0] 1-11
+                                                                                                    11  ??? [0x302bff0b0] 1-11
+                                                                                                      1   __CFCheckCFInfoPACSignature + 44 (CoreFoundation + 1378684) [0x18f91397c] 1
+                                                                                                       *1   ??? (kernel.release.t6020 + 22908) [0xfffffe000b72197c] 1
+                                                                                                         *1   ??? (kernel.release.t6020 + 1914736) [0xfffffe000b8ef770] 1
+                                                                                                           *1   ??? (kernel.release.t6020 + 1921320) [0xfffffe000b8f1128] 1
+                                                                                                             *1   ??? (kernel.release.t6020 + 359452) [0xfffffe000b773c1c] 1
+                                                                                                               *1   ??? (kernel.release.t6020 + 357976) [0xfffffe000b773658] 1
+                                                                                                                 *1   ??? (kernel.release.t6020 + 951144) [0xfffffe000b804368] 1
+                                                                                                                   *1   ??? (kernel.release.t6020 + 384052) [0xfffffe000b779c34] 1
+                                                                                                                     *1   ??? (kernel.release.t6020 + 266900) [0xfffffe000b75d294] 1
+                                                                                                                       *1   ??? (kernel.release.t6020 + 380244) [0xfffffe000b778d54] (running) 1
+                                                                                                      1   __CFCheckCFInfoPACSignature + 44 (CoreFoundation + 1378684) [0x18f91397c] 2
+                                                                                                        1   ??? (AutoClacker + 6495692) [0x102b79dcc] (running) 2
+  <process non-frontmost, priority 46 (46)>
+                                                                                                      2   __CFCheckCFInfoPACSignature + 44 (CoreFoundation + 1378684) [0x18f91397c] 3-4
+                                                                                                       *2   ??? (kernel.release.t6020 + 22908) [0xfffffe000b72197c] 3-4
+                                                                                                         *1   ??? (kernel.release.t6020 + 1912492) [0xfffffe000b8eeeac] 3
+                                                                                                           *1   ??? (kernel.release.t6020 + 1920952) [0xfffffe000b8f0fb8] 3
+                                                                                                             *1   ??? (kernel.release.t6020 + 359452) [0xfffffe000b773c1c] 3
+                                                                                                               *1   ??? (kernel.release.t6020 + 357976) [0xfffffe000b773658] 3
+                                                                                                                 *1   ??? (kernel.release.t6020 + 951144) [0xfffffe000b804368] 3
+                                                                                                                   *1   ??? (kernel.release.t6020 + 384392) [0xfffffe000b779d88] 3
+                                                                                                                     *1   ??? (kernel.release.t6020 + 202412) [0xfffffe000b74d6ac] (running) 3
+                                                                                                         *1   ??? (kernel.release.t6020 + 1914736) [0xfffffe000b8ef770] 4
+                                                                                                           *1   ??? (kernel.release.t6020 + 1921320) [0xfffffe000b8f1128] 4
+                                                                                                             *1   ??? (kernel.release.t6020 + 359452) [0xfffffe000b773c1c] 4
+                                                                                                               *1   ??? (kernel.release.t6020 + 357976) [0xfffffe000b773658] 4
+                                                                                                                 *1   ??? (kernel.release.t6020 + 951144) [0xfffffe000b804368] 4
+                                                                                                                   *1   ??? (kernel.release.t6020 + 384392) [0xfffffe000b779d88] 4
+                                                                                                                     *1   ??? (kernel.release.t6020 + 202412) [0xfffffe000b74d6ac] 4
+                                                                                                                       *1   ??? (kernel.release.t6020 + 587516) [0xfffffe000b7ab6fc] 4
+                                                                                                                         *1   ??? (kernel.release.t6020 + 592544) [0xfffffe000b7acaa0] (blocked by turnstile waiting for this process) 4
+                                                                                                      1   __CFCheckCFInfoPACSignature + 44 (CoreFoundation + 1378684) [0x18f91397c] 5
+                                                                                                        1   ??? (AutoClacker + 6495692) [0x102b79dcc] 5
+                                                                                                         *1   ??? (kernel.release.t6020 + 22908) [0xfffffe000b72197c] 5
+                                                                                                           *1   ??? (kernel.release.t6020 + 1914736) [0xfffffe000b8ef770] 5
+                                                                                                             *1   ??? (kernel.release.t6020 + 1921320) [0xfffffe000b8f1128] 5
+                                                                                                               *1   ??? (kernel.release.t6020 + 359452) [0xfffffe000b773c1c] 5
+                                                                                                                 *1   ??? (kernel.release.t6020 + 357976) [0xfffffe000b773658] 5
+                                                                                                                   *1   ??? (kernel.release.t6020 + 951144) [0xfffffe000b804368] 5
+                                                                                                                     *1   ??? (kernel.release.t6020 + 384392) [0xfffffe000b779d88] 5
+                                                                                                                       *1   ??? (kernel.release.t6020 + 202412) [0xfffffe000b74d6ac] 5
+                                                                                                                         *1   ??? (kernel.release.t6020 + 587516) [0xfffffe000b7ab6fc] 5
+                                                                                                                           *1   ??? (kernel.release.t6020 + 592544) [0xfffffe000b7acaa0] (blocked by turnstile waiting for this process) 5
+                                                                                                      2   __CFCheckCFInfoPACSignature + 44 (CoreFoundation + 1378684) [0x18f91397c] 6-7
+                                                                                                       *2   ??? (kernel.release.t6020 + 22908) [0xfffffe000b72197c] 6-7
+                                                                                                         *2   ??? (kernel.release.t6020 + 1914736) [0xfffffe000b8ef770] 6-7
+                                                                                                           *2   ??? (kernel.release.t6020 + 1921320) [0xfffffe000b8f1128] 6-7
+                                                                                                             *2   ??? (kernel.release.t6020 + 359452) [0xfffffe000b773c1c] 6-7
+                                                                                                               *2   ??? (kernel.release.t6020 + 357976) [0xfffffe000b773658] 6-7
+                                                                                                                 *2   ??? (kernel.release.t6020 + 951144) [0xfffffe000b804368] 6-7
+                                                                                                                   *1   ??? (kernel.release.t6020 + 384392) [0xfffffe000b779d88] 6
+                                                                                                                     *1   ??? (kernel.release.t6020 + 202412) [0xfffffe000b74d6ac] 6
+                                                                                                                       *1   ??? (kernel.release.t6020 + 587516) [0xfffffe000b7ab6fc] 6
+                                                                                                                         *1   ??? (kernel.release.t6020 + 592544) [0xfffffe000b7acaa0] (blocked by turnstile waiting for this process) 6
+                                                                                                                   *1   ??? (kernel.release.t6020 + 384236) [0xfffffe000b779cec] 7
+                                                                                                                     *1   ??? (kernel.release.t6020 + 197840) [0xfffffe000b74c4d0] 7
+                                                                                                                       *1   ??? (kernel.release.t6020 + 201288) [0xfffffe000b74d248] (running) 7
+                                                                                                      3   __CFCheckCFInfoPACSignature + 44 (CoreFoundation + 1378684) [0x18f91397c] 8-10
+                                                                                                        2   ??? (AutoClacker + 6494920) [0x102b79ac8] 8-9
+                                                                                                          2   ??? (AutoClacker + 6495792) [0x102b79e30] 8-9
+                                                                                                            2   ??? (AutoClacker + 6494800) [0x102b79a50] 8-9
+                                                                                                             *2   ??? (kernel.release.t6020 + 22908) [0xfffffe000b72197c] 8-9
+                                                                                                               *2   ??? (kernel.release.t6020 + 1912492) [0xfffffe000b8eeeac] 8-9
+                                                                                                                 *2   ??? (kernel.release.t6020 + 1920952) [0xfffffe000b8f0fb8] 8-9
+                                                                                                                   *2   ??? (kernel.release.t6020 + 359452) [0xfffffe000b773c1c] 8-9
+                                                                                                                     *2   ??? (kernel.release.t6020 + 357976) [0xfffffe000b773658] 8-9
+                                                                                                                       *2   ??? (kernel.release.t6020 + 951144) [0xfffffe000b804368] 8-9
+                                                                                                                         *1   ??? (kernel.release.t6020 + 384236) [0xfffffe000b779cec] 8
+                                                                                                                           *1   ??? (kernel.release.t6020 + 197840) [0xfffffe000b74c4d0] 8
+                                                                                                                             *1   ??? (kernel.release.t6020 + 201288) [0xfffffe000b74d248] (running) 8
+                                                                                                                         *1   ??? (kernel.release.t6020 + 384392) [0xfffffe000b779d88] 9
+                                                                                                                           *1   ??? (kernel.release.t6020 + 202412) [0xfffffe000b74d6ac] 9
+                                                                                                                             *1   ??? (kernel.release.t6020 + 587516) [0xfffffe000b7ab6fc] 9
+                                                                                                                               *1   ??? (kernel.release.t6020 + 592544) [0xfffffe000b7acaa0] (suspended, blocked by turnstile waiting for this process) 9
+                                                                                                        1   ??? (AutoClacker + 6495692) [0x102b79dcc] 10
+                                                                                                         *1   ??? (kernel.release.t6020 + 22908) [0xfffffe000b72197c] 10
+                                                                                                           *1   ??? (kernel.release.t6020 + 1914736) [0xfffffe000b8ef770] 10
+                                                                                                             *1   ??? (kernel.release.t6020 + 1921320) [0xfffffe000b8f1128] 10
+                                                                                                               *1   ??? (kernel.release.t6020 + 359452) [0xfffffe000b773c1c] 10
+                                                                                                                 *1   ??? (kernel.release.t6020 + 357976) [0xfffffe000b773658] 10
+                                                                                                                   *1   ??? (kernel.release.t6020 + 951144) [0xfffffe000b804368] 10
+                                                                                                                     *1   ??? (kernel.release.t6020 + 384392) [0xfffffe000b779d88] 10
+                                                                                                                       *1   ??? (kernel.release.t6020 + 202412) [0xfffffe000b74d6ac] (running) 10
+                                                                                                      1   __CFCheckCFInfoPACSignature + 44 (CoreFoundation + 1378684) [0x18f91397c] 11
+                                                                                                       *1   ??? (kernel.release.t6020 + 22908) [0xfffffe000b72197c] 11
+                                                                                                         *1   ??? (kernel.release.t6020 + 1914736) [0xfffffe000b8ef770] 11
+                                                                                                           *1   ??? (kernel.release.t6020 + 1921320) [0xfffffe000b8f1128] 11
+                                                                                                             *1   ??? (kernel.release.t6020 + 359452) [0xfffffe000b773c1c] 11
+                                                                                                               *1   ??? (kernel.release.t6020 + 357976) [0xfffffe000b773658] 11
+                                                                                                                 *1   ??? (kernel.release.t6020 + 951144) [0xfffffe000b804368] 11
+                                                                                                                   *1   ??? (kernel.release.t6020 + 383884) [0xfffffe000b779b8c] 11
+                                                                                                                     *1   ??? (kernel.release.t6020 + 195504) [0xfffffe000b74bbb0] 11
+                                                                                                                       *1   ??? (kernel.release.t6020 + 178760) [0xfffffe000b747a48] 11
+                                                                                                                         *1   ??? (kernel.release.t6020 + 178760) [0xfffffe000b747a48] (running) 11
+
+  Thread 0x670746    11 samples (1-11)    priority 31 (base 31)    cpu time 0.692s (1905.4M cycles, 7.0G instructions, 0.27c/i, 2.76GHz avg)
+  <process frontmost, thread QoS default (requested default), process unclamped, jetsam priority 180 (requested 180, assertion 0), process memory limit 0MB, process received importance donation from WindowServer [601], process received importance donation from CursorUIViewService [1571], IO tier 0>
+  11  thread_start + 8 (libsystem_pthread.dylib + 7196) [0x18f77ec1c] 1-11
+    11  _pthread_start + 136 (libsystem_pthread.dylib + 27736) [0x18f783c58] 1-11
+      3   ??? (AutoClacker + 6496268) [0x102b7a00c] 1-3
+        3   ??? (AutoClacker + 6499436) [0x102b7ac6c] 1-3
+          3   mach_msg + 24 (libsystem_kernel.dylib + 4032) [0x18f73ffc0] 1-3
+            3   mach_msg_overwrite + 480 (libsystem_kernel.dylib + 39360) [0x18f7489c0] 1-3
+              3   mach_msg2_trap + 8 (libsystem_kernel.dylib + 3124) [0x18f73fc34] 1-3
+               *2   ??? (kernel.release.t6020 + 203816) [0xfffffe000b74dc28] 1-2
+  <process non-frontmost>
+               *1   ??? (kernel.release.t6020 + 203816) [0xfffffe000b74dc28] 3
+      1   ??? (AutoClacker + 6496712) [0x102b7a1c8] 4
+        1   ??? (AutoClacker + 6498576) [0x102b7a910] 4
+          1   thread_get_state + 256 (libsystem_kernel.dylib + 41188) [0x18f7490e4] 4
+            1   mach_msg2_trap + 8 (libsystem_kernel.dylib + 3124) [0x18f73fc34] 4
+             *1   ??? (kernel.release.t6020 + 22908) [0xfffffe000b72197c] 4
+               *1   ??? (kernel.release.t6020 + 1913896) [0xfffffe000b8ef428] 4
+                 *1   ??? (kernel.release.t6020 + 1889180) [0xfffffe000b8e939c] 4
+                   *1   ??? (kernel.release.t6020 + 288204) [0xfffffe000b7625cc] 4
+                     *1   ??? (kernel.release.t6020 + 288204) [0xfffffe000b7625cc] (running) 4
+      1   ??? (AutoClacker + 6496256) [0x102b7a000] 5
+        1   ??? (AutoClacker + 6504048) [0x102b7be70] 5
+          1   mach_msg + 24 (libsystem_kernel.dylib + 4032) [0x18f73ffc0] 5
+            1   mach_msg_overwrite + 480 (libsystem_kernel.dylib + 39360) [0x18f7489c0] 5
+              1   mach_msg2_trap + 8 (libsystem_kernel.dylib + 3124) [0x18f73fc34] 5
+               *1   ??? (kernel.release.t6020 + 22908) [0xfffffe000b72197c] 5
+                 *1   ??? (kernel.release.t6020 + 1913896) [0xfffffe000b8ef428] 5
+                   *1   ??? (kernel.release.t6020 + 1889180) [0xfffffe000b8e939c] 5
+                     *1   ??? (kernel.release.t6020 + 288876) [0xfffffe000b76286c] 5
+                       *1   ??? (kernel.release.t6020 + 287192) [0xfffffe000b7621d8] 5
+                         *1   ??? (kernel.release.t6020 + 287192) [0xfffffe000b7621d8] (running) 5
+      3   ??? (AutoClacker + 6496268) [0x102b7a00c] 6-8
+        3   ??? (AutoClacker + 6499436) [0x102b7ac6c] 6-8
+          3   mach_msg + 24 (libsystem_kernel.dylib + 4032) [0x18f73ffc0] 6-8
+            3   mach_msg_overwrite + 480 (libsystem_kernel.dylib + 39360) [0x18f7489c0] 6-8
+              3   mach_msg2_trap + 8 (libsystem_kernel.dylib + 3124) [0x18f73fc34] 6-8
+               *1   ??? (kernel.release.t6020 + 25964) [0xfffffe000b72256c] 6
+                 *1   ??? (kernel.release.t6020 + 203968) [0xfffffe000b74dcc0] 6
+                   *1   ??? (kernel.release.t6020 + 286612) [0xfffffe000b761f94] 6
+                     *1   ??? (kernel.release.t6020 + 286076) [0xfffffe000b761d7c] 6
+                       *1   ??? (kernel.release.t6020 + 190036) [0xfffffe000b74a654] 6
+                         *1   ??? (kernel.release.t6020 + 205656) [0xfffffe000b74e358] 6
+                           *1   ??? (kernel.release.t6020 + 265240) [0xfffffe000b75cc18] (running) 6
+               *2   ??? (kernel.release.t6020 + 203816) [0xfffffe000b74dc28] (runnable) 7-8
+      1   ??? (AutoClacker + 6496232) [0x102b79fe8] 9
+        1   ??? (AutoClacker + 6463164) [0x102b71ebc] 9
+          1   thread_set_state + 256 (libsystem_kernel.dylib + 200748) [0x18f77002c] 9
+            1   mach_msg2_trap + 8 (libsystem_kernel.dylib + 3124) [0x18f73fc34] 9
+             *1   ??? (kernel.release.t6020 + 22908) [0xfffffe000b72197c] 9
+               *1   ??? (kernel.release.t6020 + 1913896) [0xfffffe000b8ef428] 9
+                 *1   ??? (kernel.release.t6020 + 1889180) [0xfffffe000b8e939c] 9
+                   *1   ??? (kernel.release.t6020 + 288876) [0xfffffe000b76286c] 9
+                     *1   ??? (kernel.release.t6020 + 287460) [0xfffffe000b7622e4] 9
+                       *1   ??? (kernel.release.t6020 + 198084) [0xfffffe000b74c5c4] 9
+                         *1   ??? (kernel.release.t6020 + 379252) [0xfffffe000b778974] 9
+                           *1   ??? (kernel.release.t6020 + 1034160) [0xfffffe000b8187b0] 9
+                             *1   ??? (kernel.release.t6020 + 778760) [0xfffffe000b7da208] 9
+                               *1   ??? (kernel.release.t6020 + 778760) [0xfffffe000b7da208] (running) 9
+      2   ??? (AutoClacker + 6496268) [0x102b7a00c] 10-11
+        2   ??? (AutoClacker + 6499436) [0x102b7ac6c] 10-11
+          2   mach_msg + 24 (libsystem_kernel.dylib + 4032) [0x18f73ffc0] 10-11
+            2   mach_msg_overwrite + 480 (libsystem_kernel.dylib + 39360) [0x18f7489c0] 10-11
+              2   mach_msg2_trap + 8 (libsystem_kernel.dylib + 3124) [0x18f73fc34] 10-11
+               *2   ??? (kernel.release.t6020 + 203816) [0xfffffe000b74dc28] 10-11
+
+  Thread 0x670759    Thread name "CVDisplayLink"    11 samples (1-11)    priority 54 (base 54)    cpu time <0.001s (2.1M cycles, 2.5M instructions, 0.86c/i, 2.81GHz avg)
+  <process frontmost, process unclamped, jetsam priority 180 (requested 180, assertion 0), process memory limit 0MB, process received importance donation from WindowServer [601], process received importance donation from CursorUIViewService [1571], IO tier 0>
+  11  thread_start + 8 (libsystem_pthread.dylib + 7196) [0x18f77ec1c] 1-11
+    11  _pthread_start + 136 (libsystem_pthread.dylib + 27736) [0x18f783c58] 1-11
+      11  CVDisplayLink::runIOThread() + 452 (CoreVideo + 11308) [0x19a145c2c] 1-11
+        11  CVDisplayLink::waitUntil(unsigned long long) + 336 (CoreVideo + 15172) [0x19a146b44] 1-11
+          11  __psynch_cvwait + 8 (libsystem_kernel.dylib + 17676) [0x18f74350c] 1-11
+           *2   psynch_cvcontinue + 0 (pthread + 17948) [0xfffffe000b65a97c] 1-2
+  <process non-frontmost>
+           *9   psynch_cvcontinue + 0 (pthread + 17948) [0xfffffe000b65a97c] 3-11
+
+  Thread 0x670758    Thread name "RenderTimerLoop"    11 samples (1-11)    priority 31 (base 31)    cpu time <0.001s (1433.9K cycles, 1684.4K instructions, 0.85c/i, 2.79GHz avg)
+  <process frontmost, process unclamped, jetsam priority 180 (requested 180, assertion 0), process memory limit 0MB, process received importance donation from WindowServer [601], process received importance donation from CursorUIViewService [1571], IO tier 0>
+  11  thread_start + 8 (libsystem_pthread.dylib + 7196) [0x18f77ec1c] 1-11
+    11  _pthread_start + 136 (libsystem_pthread.dylib + 27736) [0x18f783c58] 1-11
+      11  ??? (AutoClacker + 6486936) [0x102b77b98] 1-11
+        11  ??? (AutoClacker + 2663428) [0x1027d2404] 1-11
+          11  ??? (AutoClacker + 2400260) [0x102792004] 1-11
+            11  ??? (AutoClacker + 2670536) [0x1027d3fc8] 1-11
+              11  ??? (AutoClacker + 2590932) [0x1027c08d4] 1-11
+                11  ??? (AutoClacker + 4066400) [0x102928c60] 1-11
+                  11  ??? [0x3003bb1f4] 1-11
+                    11  ??? [0x3033ebc88] 1-11
+                      11  ??? (AutoClacker + 2690928) [0x1027d8f70] 1-11
+                        11  ??? (AutoClacker + 2369600) [0x10278a840] 1-11
+                          11  ??? (AutoClacker + 2387652) [0x10278eec4] 1-11
+                            11  ??? (AutoClacker + 6457912) [0x102b70a38] 1-11
+                              11  ??? (AutoClacker + 6444564) [0x102b6d614] 1-11
+                                11  ??? (AutoClacker + 6445160) [0x102b6d868] 1-11
+                                  11  __psynch_cvwait + 8 (libsystem_kernel.dylib + 17676) [0x18f74350c] 1-11
+                                   *2   psynch_cvcontinue + 0 (pthread + 17948) [0xfffffe000b65a97c] 1-2
+  <process non-frontmost>
+                                   *9   psynch_cvcontinue + 0 (pthread + 17948) [0xfffffe000b65a97c] 3-11
+
+  Thread 0x670754    Thread name "com.apple.NSEventThread"    11 samples (1-11)    priority 46-47 (base 46-47)    cpu time <0.001s (187.7K cycles, 188.9K instructions, 0.99c/i, 3.26GHz avg)    last ran 1.279s ago
+  <process frontmost, thread QoS user interactive (requested user interactive), process unclamped, jetsam priority 180 (requested 180, assertion 0), process memory limit 0MB, process received importance donation from WindowServer [601], process received importance donation from CursorUIViewService [1571], IO tier 0, priority 47 (47)>
+  11  thread_start + 8 (libsystem_pthread.dylib + 7196) [0x18f77ec1c] 1-11
+    11  _pthread_start + 136 (libsystem_pthread.dylib + 27736) [0x18f783c58] 1-11
+      11  _NSEventThread + 184 (AppKit + 1420460) [0x193d97cac] 1-11
+        11  _CFRunLoopRunSpecificWithOptions + 532 (CoreFoundation + 1372772) [0x18f912264] 1-11
+          11  __CFRunLoopRun + 1188 (CoreFoundation + 510452) [0x18f83f9f4] 1-11
+            11  __CFRunLoopServiceMachPort + 160 (CoreFoundation + 516360) [0x18f841108] 1-11
+              11  mach_msg + 24 (libsystem_kernel.dylib + 4032) [0x18f73ffc0] 1-11
+                11  mach_msg_overwrite + 480 (libsystem_kernel.dylib + 39360) [0x18f7489c0] 1-11
+                  11  mach_msg2_trap + 8 (libsystem_kernel.dylib + 3124) [0x18f73fc34] 1-11
+                   *2   ??? (kernel.release.t6020 + 203816) [0xfffffe000b74dc28] 1-2
+  <process non-frontmost, priority 46 (46)>
+                   *9   ??? (kernel.release.t6020 + 203816) [0xfffffe000b74dc28] 3-11
+
+
+[truncated; full 6.3MB hang is at /Library/Logs/DiagnosticReports/AutoClacker_2026-09-07-001810_Arons-MacBook-Pro.hang]
