@@ -10,7 +10,9 @@ Cross-platform mouse and keyboard click automation, built with Avalonia UI and .
 
 ![AutoClacker Screenshot](Images/AutoClacker.png)
 
-Windows, macOS, and Linux are targeted. There is **no installer**: run from source with `dotnet run`, or publish a portable self-contained binary and run that file.
+Windows, macOS, and Linux are targeted. There is **no installer**: run from source with `dotnet run`, or download / publish a portable self-contained binary and run that file.
+
+Building from source requires the **.NET 10 SDK** (the .NET 10 *runtime* alone is not enough). A published Windows `.exe` is self-contained and does **not** need the SDK to run. Windows portable builds are on [Releases](https://github.com/IronAdamant/AutoClacker/releases).
 
 ## Features
 
@@ -54,7 +56,15 @@ The app depends only on `IPlatformServices`. OS selection happens in `Desktop` o
 
 ## Build, test, run
 
-Requires the **.NET 10** SDK.
+Requires the **.NET 10 SDK**, not only the runtime. Confirm with `dotnet --list-sdks` — a `10.x` SDK must be listed. A `9.x` SDK cannot target `net10.0` and fails with `NETSDK1045`.
+
+Install from [https://aka.ms/dotnet/download](https://aka.ms/dotnet/download), or on Windows:
+
+```powershell
+winget install Microsoft.DotNet.SDK.10
+```
+
+Then:
 
 ```bash
 dotnet build AutoClacker.slnx -c Release
@@ -94,7 +104,7 @@ Then run `publish/win-x64/AutoClacker.exe` on Windows, `./publish/linux-x64/Auto
 
 ## Platform notes
 
-- **Windows:** Desktop input injection needs no extra permission for normal use. Optional debug console in Settings.
+- **Windows:** Desktop input injection needs no extra permission for normal use. Live runs are a GUI app (`WinExe`) with **no console window** unless you enable **Show Debug Console** in Settings (requires restart). Optional **Write debug log** writes to `%AppData%\AutoClacker\debug.log`.
 - **macOS:** Accessibility is required for both injection and the global hotkey. The UI surfaces unavailability when trust is missing. Grant AutoClacker (or your terminal / IDE if you `dotnet run`) in System Settings → Privacy & Security → Accessibility. Optional **Write debug log** (Settings) writes to `~/Library/Application Support/AutoClacker/debug.log`. During keyboard automation, click another window so injected keys do not land on AutoClacker itself.
 - **Linux:** Uses `libX11` / `libXtst`. An X11 session or XWayland is required. Holding the hotkey does not thrash start/stop (auto-repeat suppressed).
 
