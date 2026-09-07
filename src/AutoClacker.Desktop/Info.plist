@@ -28,5 +28,7 @@
 	<true/>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSAccessibilityUsageDescription</key>
+	<string>AutoClacker needs Accessibility to click the mouse, press keys, and listen for the global hotkey.</string>
 </dict>
 </plist>

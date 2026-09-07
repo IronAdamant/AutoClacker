@@ -71,9 +71,20 @@ if [[ "$RID" == osx-* ]]; then
   cp src/AutoClacker.Desktop/Info.plist "${APP}/Contents/Info.plist"
   cp src/AutoClacker.Desktop/Assets/AppIcon.icns "${APP}/Contents/Resources/AppIcon.icns"
   if command -v codesign >/dev/null 2>&1; then
-    codesign --force --deep -s - "$APP" >/dev/null 2>&1 || true
+    IDENTITY="-"
+    if IDENT_OUT="$("$ROOT/scripts/macos-ensure-signing-identity.sh")"; then
+      IDENTITY="$IDENT_OUT"
+    fi
+    echo "Signing ${APP} with identity: ${IDENTITY}"
+    codesign --force --sign "$IDENTITY" \
+      --identifier com.ironadamant.autoclacker \
+      "${APP}/Contents/MacOS/AutoClacker"
+    codesign --force --sign "$IDENTITY" \
+      --identifier com.ironadamant.autoclacker \
+      "$APP"
   fi
   echo "Done. Open ${APP} (or run ${APP}/Contents/MacOS/AutoClacker)."
+  echo "Put AutoClacker.app in /Applications and grant Accessibility once so macOS keeps the permission."
 else
   echo "Done. Run the published binary from ${OUT} (AutoClacker.exe on Windows, ./AutoClacker on macOS/Linux)."
 fi

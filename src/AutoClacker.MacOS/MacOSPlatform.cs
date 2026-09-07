@@ -23,6 +23,7 @@ public sealed partial class MacOSPlatform : IPlatformServices
             throw new PlatformNotSupportedException("MacOSPlatform requires macOS.");
 
         bool trusted = IsProcessTrusted();
+        log.Info($"MacOSPlatform: trusted={trusted} path={Environment.ProcessPath}");
         _input = new MacInput(log, trusted);
         _hotkey = new MacHotkey(log);
 

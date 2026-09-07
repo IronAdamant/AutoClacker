@@ -95,7 +95,12 @@ internal partial class MacHotkey : IHotkeyService
         }
 
         if (!MacOSPlatform.IsProcessTrusted())
-            _log.Info("MacHotkey: Process is not trusted for Accessibility");
+        {
+            // Creating a tap while untrusted makes macOS prompt again even if
+            // Accessibility was already granted to a previous copy/signature.
+            _log.Info("MacHotkey: skipped tap — process is not trusted for Accessibility");
+            return false;
+        }
 
         ulong eventMask = 1UL << kCGEventKeyDown;
         _eventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap,
